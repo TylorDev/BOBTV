@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="screen_padding">24dp</dimen>
-    <dimen name="greeting_text_size">32sp</dimen>
+    <dimen name="channel_text_size">32sp</dimen>
+    <dimen name="help_text_size">24sp</dimen>
+    <dimen name="space_small">8dp</dimen>
+    <dimen name="space_medium">16dp</dimen>
+    <dimen name="space_large">24dp</dimen>
+    <dimen name="channel_row_height">76dp</dimen>
+    <dimen name="button_height">64dp</dimen>
+    <dimen name="focus_border_width">3dp</dimen>
+    <dimen name="surface_radius">8dp</dimen>
 </resources>

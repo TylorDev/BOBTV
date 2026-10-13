@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp" android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="@color/screen_background" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="@color/accent" android:pathData="M24,62h68v48h-68zM45,118h26v5h-26z" />
+    <path android:fillColor="@color/screen_background" android:pathData="M29,67h58v38h-58z" />
+    <path android:fillColor="@color/accent" android:pathData="M46,75l23,11 -23,11z" />
+    <path android:fillColor="@color/text_primary" android:fillType="evenOdd"
+        android:pathData="M108,67h18q17,0 17,12q0,8 -7,10q9,3 9,11q0,13 -18,13h-19zM117,75v11h9q8,0 8,-6q0,-5 -8,-5zM117,94v11h10q9,0 9,-5q0,-6 -9,-6zM152,81q0,-15 19,-15q19,0 19,15v18q0,15 -19,15q-19,0 -19,-15zM162,81v18q0,7 9,7q9,0 9,-7v-18q0,-7 -9,-7q-9,0 -9,7zM197,67h18q17,0 17,12q0,8 -7,10q9,3 9,11q0,13 -18,13h-19zM206,75v11h9q8,0 8,-6q0,-5 -8,-5zM206,94v11h10q9,0 9,-5q0,-6 -9,-6z" />
+    <path android:fillColor="@color/accent" android:pathData="M239,67h30v9h-10v37h-10v-37h-10zM273,67h10l9,32l9,-32h10l-15,46h-8z" />
+</vector>

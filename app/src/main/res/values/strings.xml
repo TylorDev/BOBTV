@@ -1,5 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Hello World</string>
-    <string name="hello_world">Hello World</string>
+    <string name="app_name">BOBTV</string>
+    <string name="channels_title">Canales</string>
+    <string name="remote_help">↑↓ Cambiar canal · OK Canales</string>
+    <string name="list_help">↑↓ Elegir · OK Ver · Atrás Volver</string>
+    <string name="loading_channel">Cargando canal…</string>
+    <string name="retrying_channel">Reconectando el canal…</string>
+    <string name="channel_unavailable">Este canal no está disponible</string>
+    <string name="channel_unavailable_help">Puedes reintentar o elegir otro canal.</string>
+    <string name="retry">Reintentar</string>
+    <string name="choose_channel">Elegir canal</string>
+    <string name="refresh_channels">Actualizar canales</string>
+    <string name="refreshing_channels">Buscando canales…</string>
+    <plurals name="catalogue_updated">
+        <item quantity="one">%1$d canal · Lista actualizada</item>
+        <item quantity="other">%1$d canales · Lista actualizada</item>
+    </plurals>
+    <plurals name="catalogue_cached">
+        <item quantity="one">%1$d canal · Lista guardada</item>
+        <item quantity="other">%1$d canales · Lista guardada</item>
+    </plurals>
+    <plurals name="catalogue_bundled">
+        <item quantity="one">%1$d canal · Lista inicial</item>
+        <item quantity="other">%1$d canales · Lista inicial</item>
+    </plurals>
+    <string name="catalogue_kept">No se pudo actualizar. Conservamos tus canales.</string>
+    <string name="exit_title">¿Salir de BOBTV?</string>
+    <string name="keep_watching">Seguir viendo</string>
+    <string name="exit_app">Salir</string>
+    <string name="dialog_help">←→ Elegir · OK Confirmar · Atrás Volver</string>
+    <string name="channel_number">%1$02d</string>
 </resources>

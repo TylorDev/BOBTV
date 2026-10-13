@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "HelloWorldAndroid13"
+rootProject.name = "BOBTV"
 include(":app")

@@ -1,12 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.HelloWorld" parent="android:style/Theme.Material.Light.NoActionBar">
+    <style name="Theme.BOBTV" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:colorAccent">@color/accent</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">@color/screen_background</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:navigationBarColor">@color/screen_background</item>
         <item name="android:windowBackground">@color/screen_background</item>
+    </style>
+    <style name="TVButton" parent="android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/focus_background</item>
+        <item name="android:backgroundTint">@null</item>
+        <item name="android:textColor">@color/focus_text_selector</item>
+        <item name="android:textSize">@dimen/help_text_size</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:minHeight">@dimen/button_height</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">@dimen/space_medium</item>
+        <item name="android:paddingEnd">@dimen/space_medium</item>
+        <item name="android:focusable">true</item>
     </style>
 </resources>

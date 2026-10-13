@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="screen_background">#FFFFFF</color>
-    <color name="text_primary">#202124</color>
-    <color name="accent">#2563EB</color>
-    <color name="launcher_background">#2563EB</color>
+    <color name="screen_background">#101418</color>
+    <color name="surface">#20282E</color>
+    <color name="surface_overlay">#F020282E</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#D1DBE2</color>
+    <color name="accent">#FFD45C</color>
+    <color name="focus_text">#101418</color>
+    <color name="focus_border">#FFFFFF</color>
+    <color name="scrim">#99000000</color>
 </resources>

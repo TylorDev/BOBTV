@@ -1,67 +1,69 @@
-# Hello World para Android 10 y versiones posteriores
+# BOBTV
 
-Aplicación nativa en Kotlin con una pantalla que muestra **Hello World** en el centro. No requiere permisos ni conexión a Internet.
+App IPTV nativa en Kotlin para un TV box con Android 10 o posterior. Se abre directamente en el último canal utilizado y se maneja con el control remoto. Interfaz en español con texto grande, alto contraste y márgenes de seguridad para TV.
 
-## Configuración
+## Instalar sin USB
 
-- Android mínimo: **Android 10 (API 29)**.
-- SDK de compilación y destino: **API 33 (Android 13)**. Esto no impide instalar la app desde Android 10.
-- Versión de la app: **1.1**, código de versión **2**.
-- Identificador: `com.bobtv.helloworld`.
-- Android Gradle Plugin: `9.0.1`, con Kotlin integrado.
-- Gradle Wrapper: `9.1.0`.
-- Java: Android Studio incluye un JDK compatible; el código se compila para Java 17.
+APK de entrega: **dist/BOBTV-2.0-Android10.apk**.
 
-## Abrir y ejecutar en Android Studio
+1. Transfiere el APK al TV box mediante AnyDesk.
+2. En el TV box, abre el gestor de archivos y selecciona el APK.
+3. Si Android lo solicita, permite instalar aplicaciones desconocidas para ese gestor.
+4. Instala como actualización de la app anterior y abre **BOBTV**.
 
-1. Selecciona **Open** y abre la carpeta raíz de este proyecto.
-2. Deja que Android Studio sincronice Gradle e instale los componentes del SDK que falten.
-3. Para probar la versión mínima compatible, crea un dispositivo en **Tools > Device Manager > Create Device** y selecciona una imagen de **Android 10 / API 29**. También puedes elegir **Android 13 / API 33**.
-4. Selecciona el dispositivo virtual y pulsa **Run** para ejecutar el módulo `app`.
+Se mantiene el identificador com.bobtv.helloworld y el certificado de depuración anterior. La versión es **2.0**, código **3**, con mínimo Android 10 / API 29. Para la prueba inicial puedes elegir **RED UNO** desde la lista; varias fuentes originales devolvieron errores desde la red de desarrollo. Consulta [la validación](docs/VALIDACION.md).
 
-El dispositivo de prueba mostrado en la captura usa Android 10 / API 29. La versión anterior de la app exigía API 33 y Android rechazaba su instalación. Esta versión reduce el mínimo a API 29 y mantiene compatibilidad con Android 13 y versiones posteriores.
+Si después de actualizar no funciona ninguna conexión, reinicia el dispositivo una vez. En el emulador Android TV 10 los permisos nuevos de Internet se recargaron correctamente tras reiniciarlo.
 
-El dispositivo virtual existente `Medium_Phone_API_37.0` utiliza una versión posterior; para comprobar el comportamiento en Android 10 selecciona una imagen API 29.
+## Control remoto
 
-## Compilar desde PowerShell
+| Botón | Mientras ves TV | Dentro de la lista |
+|---|---|---|
+| Arriba / abajo | Siguiente / anterior, con recorrido circular | Mover la selección |
+| OK | Abrir la lista | Ver el canal seleccionado |
+| Atrás | Confirmar salida | Cerrar la lista |
+| CH+ / CH− | Siguiente / anterior | — |
+| Volumen | Control del sistema | Control del sistema |
 
-Usa el Java incluido con Android Studio si no tienes `JAVA_HOME` configurado:
+En los mensajes con dos botones, usa izquierda / derecha y OK. Al salir, **Seguir viendo** queda seleccionado inicialmente. El nombre del canal y la ayuda desaparecen después de cinco segundos. La lista y los errores permanecen hasta que actúes.
 
-```powershell
-$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
-.\gradlew.bat --no-daemon :app:assembleDebug :app:lintDebug
-```
+Una señal fallida se reintenta dos veces, después de 2 y 5 segundos, y luego permite **Reintentar** o **Elegir canal**. La app mantiene el canal seleccionado. No reproduce en segundo plano.
 
-Si no existe `local.properties`, Android Studio lo generará. Para compilar desde la terminal antes de abrir el IDE, configura `ANDROID_HOME` con la ruta de tu Android SDK. Estos ajustes son locales y no se guardan en Git.
+## Administrar canales sin otra build
 
-El APK de depuración se genera en `app/build/outputs/apk/debug/app-debug.apk`.
+Repositorio: [TylorDev/bobtv-canales](https://github.com/TylorDev/bobtv-canales).
 
-Para esta entrega también se dejó una copia verificada con el nombre `app/build/outputs/apk/debug/HelloWorld-Android10-v1.1-debug.apk`, para distinguirla del APK anterior.
+La app consulta [canales.m3u en main](https://github.com/TylorDev/bobtv-canales/blob/main/canales.m3u). Edita desde GitHub y guarda con **Commit changes**. La guía del repositorio incluye el formato para altas, cambios y bajas.
 
-Con un emulador encendido, puedes instalar la app con:
+Actualiza al abrir, cada 30 minutos mientras está activa y mediante **Actualizar canales** al final de la lista. La actualización no interrumpe el video. Conserva la última lista válida y dispone de una copia inicial con los 13 canales.
 
-```powershell
-.\gradlew.bat --no-daemon :app:installDebug
-```
+GitHub puede tardar unos minutos en servir un cambio recién guardado. Si todavía aparece la lista anterior, espera y pulsa **Actualizar canales** otra vez.
 
-Las tareas de este proyecto deshabilitan el daemon persistente de Gradle y ejecutan el compilador Kotlin en el mismo proceso.
+Los nombres, el orden y las URLs se administran en el M3U. Conserva el tvg-id de un canal cuando lo renombres: permite recordar la selección aunque cambie de posición. Si desaparece, la siguiente ejecución abre el primero disponible. Se admiten fuentes HLS HTTP y HTTPS.
 
-## Instalar en el dispositivo con AnyDesk
+Fuente canónica: https://raw.githubusercontent.com/TylorDev/bobtv-canales/main/canales.m3u
 
-1. Transfiere el APK recién generado a la carpeta **Descargas** del dispositivo mediante AnyDesk.
-2. En Android, abre el gestor de archivos y selecciona el APK.
-3. Si Android lo solicita, habilita **Instalar aplicaciones desconocidas** para ese gestor de archivos.
-4. Pulsa **Instalar** y después **Abrir**.
+## Desarrollo
 
-El APK debe indicar versión **1.1** y mínimo Android 10. Usa el nuevo archivo y evita reutilizar la descarga anterior, que exigía Android 13.
+Abre esta carpeta en Android Studio y ejecuta el módulo app.
 
-## Verificación realizada
+- Kotlin integrado en Android Gradle Plugin **9.0.1**, Gradle **9.1.0**, Java 17.
+- SDK de compilación **36**, destino **33**, mínimo **29**.
+- Media3 / ExoPlayer **1.11.1**, módulos HLS y PlayerView.
+- Un reproductor con decodificadores del sistema y fallback; búfer de hasta 20 segundos con objetivo de 16 MiB.
+- Recursos XML para colores, dimensiones, tema, foco, icono y banner.
+- La URL del catálogo es fija; no se requieren credenciales de GitHub en el dispositivo.
 
-- `:app:assembleDebug` y `:app:lintDebug`: completados correctamente.
-- Android Lint: cero errores; tres advertencias sobre versiones más recientes de Android y Gradle. Se mantiene el SDK de destino API 33 y la pareja compatible AGP 9.0.1 / Gradle 9.1.0.
-- Metadatos del APK: SDK mínimo **29** y SDK de compilación y destino **33**; versión **1.1** / código **2**.
-- Firma de depuración del APK: válida.
+Compilación y comprobaciones desde PowerShell:
 
-La validación se realizó mediante compilación e inspección del APK; no se ejecutó un emulador ni se hizo una revisión visual. La instalación en el dispositivo físico queda pendiente de realizar desde AnyDesk.
+    $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
+    $env:GRADLE_USER_HOME = Join-Path (Get-Location).Path '.gradle-user-home'
+    .\gradlew.bat --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 
-Referencias: [SDK mínimo y de destino](https://developer.android.com/guide/topics/manifest/uses-sdk-element), [compilación con Gradle](https://developer.android.com/build/building-cmdline), [Kotlin integrado](https://developer.android.com/build/migrate-to-built-in-kotlin), [dispositivos virtuales](https://developer.android.com/studio/run/managing-avds) y [transferencia de archivos con AnyDesk](https://support.anydesk.com/docs/es/file-manager-and-file-transfer).
+El APK de Gradle está en app/build/outputs/apk/debug/app-debug.apk. Copia la entrega a dist para conservarla entre compilaciones. El certificado de depuración existente debe conservarse para las futuras actualizaciones.
+
+Las diez pruebas cubren el M3U inicial, UTF-8/BOM, comentarios, comas, entradas inválidas, caché, errores de red, cambios de catálogo y los dos reintentos. Los informes de Gradle quedan en app/build/reports.
+
+Se creó el dispositivo virtual **BOBTV_Android10_TV**, con Android TV API 29 y perfil 1080p. Sus archivos están en .tooling/avd y queda registrado para Android Studio. Al finalizar las pruebas se cierra el emulador; puedes iniciarlo desde Device Manager.
+
+Referencias: [Media3](https://developer.android.com/jetpack/androidx/releases/media3), [aplicaciones para TV](https://developer.android.com/training/tv/get-started/create) y [SDK mínimo y de destino](https://developer.android.com/guide/topics/manifest/uses-sdk-element).
