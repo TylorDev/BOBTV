@@ -23,6 +23,7 @@ class TvScreen(
     private val onExportLogs: () -> Unit,
     private val onExit: () -> Unit,
     private val onRetry: () -> Unit = {},
+    private val onSaveLogs: () -> Unit = {},
 ) {
     private enum class Mode { PLAYBACK, CHANNELS, SETTINGS, EXIT }
     private var mode = Mode.PLAYBACK
@@ -51,6 +52,7 @@ class TvScreen(
     private val refresh = view<Button>(R.id.refresh_channels)
     private val openSettings = view<Button>(R.id.open_settings)
     private val exportLogs = view<Button>(R.id.export_logs)
+    private val saveLogs = view<Button>(R.id.save_logs)
     private val empty = view<TextView>(R.id.empty_channels)
     private val catalogueStatus = view<TextView>(R.id.catalogue_status)
     private val accept = view<Button>(R.id.accept_change)
@@ -71,6 +73,7 @@ class TvScreen(
         refresh.setOnClickListener { menuCursor = channels.size; onRefresh() }
         openSettings.setOnClickListener { menuCursor = channels.size + 1; showSettings() }
         exportLogs.setOnClickListener { onExportLogs() }
+        saveLogs.setOnClickListener { onSaveLogs() }
         accept.setOnClickListener { onAcknowledge() }
         retry.setOnClickListener { onRetry() }
         view<Button>(R.id.keep_watching).setOnClickListener { resumeView() }
@@ -206,7 +209,7 @@ class TvScreen(
         when (updated) {
             Mode.CHANNELS -> focusMenuCursor()
             Mode.EXIT -> view<Button>(R.id.keep_watching).requestFocus()
-            Mode.SETTINGS -> exportLogs.requestFocus()
+            Mode.SETTINGS -> saveLogs.requestFocus()
             Mode.PLAYBACK -> {
                 if (status == TvPlayer.Status.FAILED && current != null) accept.requestFocus() else root.requestFocus()
                 showOverlay()

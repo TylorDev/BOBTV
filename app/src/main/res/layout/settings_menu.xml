@@ -9,8 +9,12 @@
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_medium" android:text="@string/logs_description"
         android:textSize="@dimen/help_text_size" android:textColor="@color/text_secondary" />
+    <Button android:id="@+id/save_logs" style="@style/TVButton" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_large"
+        android:nextFocusDown="@id/export_logs" android:text="@string/save_logs" />
     <Button android:id="@+id/export_logs" style="@style/TVButton" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_large" android:text="@string/export_logs" />
+        android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_medium"
+        android:nextFocusUp="@id/save_logs" android:text="@string/export_logs" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_medium" android:text="@string/settings_help"
         android:textSize="@dimen/help_text_size" android:textColor="@color/text_secondary" />

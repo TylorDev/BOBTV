@@ -13,10 +13,11 @@ class AvailabilityState(private val now: () -> Long = { System.nanoTime() / 1_00
     private data class Health(var state: Availability = Availability.UNKNOWN, var verified: Boolean = false,
                               var unstable: Boolean = false,
                               var positiveAt: Long = Long.MIN_VALUE, var negativeAt: Long? = null,
-                              var revision: Long)
+                              var revision: Long, var lastProbeOrder: Long = 0)
     private val sources = linkedMapOf<SourceKey, Health>()
     private val pending = mutableSetOf<SourceKey>()
     private var serial = 0L
+    private var probeSerial = 0L
     private var cursor = 0
 
     fun setCatalogue(channels: List<Channel>, reset: Boolean = false) {
@@ -33,7 +34,9 @@ class AvailabilityState(private val now: () -> Long = { System.nanoTime() / 1_00
             .filter { it != playing && it in sources }
         if (all.isEmpty()) return emptyList()
         val preferred = all.filter { it.channelId == preferredId }.take(2)
+        // Resume with unchecked/oldest sources when playback or the round deadline interrupted a batch.
         val rotated = all.indices.map { all[(cursor + it).mod(all.size)] }
+            .sortedBy { sources.getValue(it).lastProbeOrder }
         val batch = (preferred + rotated).distinct().take(limit)
         cursor = (cursor + maxOf(1, batch.size - preferred.size)).mod(all.size)
         return batch.map { key -> pending.add(key); ProbeTicket(key, sources.getValue(key).revision) }
@@ -41,6 +44,7 @@ class AvailabilityState(private val now: () -> Long = { System.nanoTime() / 1_00
 
     fun apply(ticket: ProbeTicket, result: ProbeResult, networkHealthy: Boolean = false): Boolean {
         val health = sources[ticket.key] ?: return false
+        health.lastProbeOrder = ++probeSerial
         if (health.revision != ticket.revision) return false
         pending.remove(ticket.key)
         when (result.verdict) {
@@ -85,11 +89,9 @@ class AvailabilityState(private val now: () -> Long = { System.nanoTime() / 1_00
     fun confirmedOffline(channel: Channel) = channel.sources.all { state(SourceKey(channel.id, it)) == Availability.OFFLINE_CONFIRMED }
     fun onlineSources(channel: Channel) = channel.sources.filter { state(SourceKey(channel.id, it)) == Availability.ONLINE }
     fun available(channels: List<Channel>) = channels.filter { onlineSources(it).isNotEmpty() }
-    fun navigable(channels: List<Channel>) = channels.filter { !confirmedOffline(it) && it.sources.any { url -> sources[SourceKey(it.id, url)]?.verified == true } }
-    fun visible(channels: List<Channel>): List<Channel> {
-        val navigableIds = navigable(channels).mapTo(hashSetOf()) { it.id }
-        return channels.filter { it.id in ChannelVisibilityPolicy.alwaysVisibleIds || it.id in navigableIds }
-    }
+    fun navigable(channels: List<Channel>) = channels.filter { !confirmedOffline(it) }
+    // Availability is diagnostic evidence, not permission to select a catalogue entry.
+    fun visible(channels: List<Channel>): List<Channel> = channels
     fun label(channel: Channel): String = when {
         confirmedOffline(channel) -> "Sin señal confirmada"
         onlineSources(channel).isNotEmpty() -> if (channel.sources.any { sources[SourceKey(channel.id, it)]?.unstable == true })

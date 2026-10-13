@@ -1,6 +1,6 @@
 # Numeración y selección de canales
 
-Cada canal recibe un número según su posición en el catálogo M3U completo: `01`, `02`, …, `99`, `100`, …, `999`. Si un canal se oculta porque no tiene señal, su número queda reservado y los demás conservan el suyo. Agregar otra fuente al mismo canal no crea un número adicional.
+Cada canal recibe un número según su posición en el catálogo M3U completo: `01`, `02`, …, `99`, `100`, …, `999`. Desde 2.2.1 todos los canales permanecen visibles, con su estado real, aunque la comprobación esté pendiente o falle. Agregar otra fuente al mismo canal no crea un número adicional.
 
 Reordenar o quitar canales del catálogo cambia los números posteriores. La app sigue recordando el último canal por su `tvg-id`, no por su número. Un catálogo con más de 999 canales distintos se rechaza y se conserva la última lista válida.
 
@@ -15,9 +15,9 @@ Escribe el número con los botones `0`–`9` del mando o del teclado numérico, 
 - Las flechas y **CH+ / CH−** cancelan la entrada y mantienen su función habitual.
 - La entrada numérica está desactivada en Configuración y en la confirmación de salida.
 
-Si el número no existe, aparece «Canal XX no existe». Si corresponde a un canal oculto por falta de señal, aparece «Canal XX no disponible». Estos avisos duran dos segundos y no cambian la reproducción ni cierran la lista. `0` y `000` no corresponden a ningún canal.
+Si el número no existe, aparece «Canal XX no existe». Este aviso dura dos segundos y no cambia la reproducción ni cierra la lista. `0` y `000` no corresponden a ningún canal. Cualquier número presente en el catálogo se puede intentar, aun sin evidencia positiva previa.
 
-En 2.2, un fallo transitorio o el agotamiento de reintentos no oculta un canal verificado. Unitel Santa Cruz, La Paz y Cochabamba permanecen seleccionables por lista y número aun confirmados offline, con su estado real. No reciben un número nuevo ni se consideran online por estar visibles.
+En 2.2.1, Unitel, Red Uno, Bolivisión y el resto del catálogo permanecen seleccionables por lista y número aun confirmados offline, con su estado real. No reciben un número nuevo ni se consideran online por estar visibles.
 
 ## Canal actual y recorrido circular
 
@@ -25,7 +25,7 @@ Cada selección muestra durante cinco segundos el número y el nombre publicados
 
 Al ver TV, **↑ / CH+** eligen el siguiente canal disponible y **↓ / CH−** el anterior. Después del último se vuelve al primero; antes del primero se vuelve al último. Dentro de la lista, las flechas mueven la selección y **OK** la confirma.
 
-La navegación de 2.2 también conserva canales previamente verificados durante incertidumbre o cortes. Excluye Unitel confirmado offline del zapping; sigue disponible en lista y por número. Aceptar y cambiar utiliza únicamente emisiones con evidencia positiva reciente, sin bucles entre canales sin señal.
+La navegación de 2.2.1 incluye canales pendientes o con resultados inconclusos. Excluye del zapping las señales confirmadas offline; siguen disponibles en lista y por número. Aceptar y cambiar utiliza únicamente emisiones con evidencia positiva reciente, sin bucles entre canales sin señal.
 
 Si se elimina del catálogo el canal que estás viendo, la reproducción continúa y el aviso indica «NOMBRE · Fuera de la lista», sin asignarle el número de otro canal. Al actualizar la disponibilidad se mantienen los números del catálogo; si cambia su orden mientras escribes, la entrada pendiente se cancela.
 

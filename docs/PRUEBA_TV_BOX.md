@@ -1,4 +1,4 @@
-# Validación manual en el TV Box — BOBTV 2.2
+# Validación manual en el TV Box — BOBTV 2.2.1
 
 Esta guía no acredita pruebas ya realizadas. La reproducción de RED UNO confirmada por el usuario el 13 de octubre corresponde al historial anterior; las nuevas fuentes 1080p y el perfil 2.2 requieren comprobación física.
 
@@ -6,9 +6,9 @@ Equipo reportado: Allwinner H313/H616, cuatro Cortex-A53 hasta 1296 MHz, sistema
 
 ## Preparación y logs
 
-1. Transfiere **dist/BOBTV-2.2-Android10.apk** con AnyDesk e instala como actualización, sin desinstalar.
+1. Transfiere **dist/BOBTV-2.2.1-Android10.apk** con AnyDesk e instala como actualización, sin desinstalar.
 2. Abre BOBTV. No hace falta ADB ni depuración inalámbrica.
-3. Después de cada bloque usa **Menú → Exportar logs al portapapeles** y pega el texto en el chat, indicando canal, duración, tipo de conexión, si hubo imagen/sonido y qué observaste.
+3. Después de cada bloque usa **Menú → Guardar log TXT en Descargas** y envía el archivo `BOBTV-log-*.txt` de Descargas, indicando canal, duración, tipo de conexión, si hubo imagen/sonido y qué observaste. También puedes exportar al portapapeles.
 4. Exporta cada 10–15 minutos en sesiones largas: el historial está limitado a 2000 eventos/256 KiB. Los resúmenes conservan contadores acumulados.
 5. Anota fuentes de alto bitrate/FPS, audio MP2 y temperatura solo si los logs lo indican; no deduzcas capacidad del nombre de la caja.
 
@@ -27,7 +27,7 @@ Equipo reportado: Allwinner H313/H616, cuatro Cortex-A53 hasta 1296 MHz, sistema
 
 Para cortar la red, usa el router o desactiva la conexión del TV Box manualmente. Conserva una sesión con el mismo canal durante todo el corte. En otro ensayo elige un canal distinto durante la desconexión: al volver debe recuperar el nuevo.
 
-Comprueba que Unitel Santa Cruz, La Paz y Cochabamba aparecen aun sin señal; pueden elegirse por lista/número, muestran estado real y el aviso personalizado. Si solo quedan Unitel sin señal confirmada, no deben empezar a alternarse automáticamente. Red Uno y Bolivisión no tienen esa excepción.
+Comprueba que todos los canales aparecen desde el inicio, incluyendo Red Uno y Bolivisión, antes de terminar los probes y aun sin conexión. Deben poder intentarse por lista/número y mantener su estado real. Una señal visible sin comprobar no debe contarse como activa ni usarse para cambios automáticos. Unitel conserva su aviso personalizado. En Configuración, prueba ambos botones con ↑↓/OK: el TXT debe aparecer en Descargas, abrirse con acentos correctos y contener el diagnóstico. Repite el guardado y verifica archivos distintos; si el almacenamiento está lleno debe avisar del fallo sin dejar un archivo publicado incompleto.
 
 En avisos de fallo, izquierda/derecha y OK eligen Reintentar o Aceptar y cambiar; Unitel ofrece Elegir otro canal. Atrás abre la lista. Configuración y confirmación de salida deben conservar foco y bloquear entrada numérica. Volumen sigue siendo del sistema; este trabajo no implementa la escala 0–100.
 

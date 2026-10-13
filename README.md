@@ -1,10 +1,10 @@
 # BOBTV
 
-App IPTV nativa en Kotlin y XML para Android 10 o posterior, manejada con el mando del TV Box. BOBTV **2.2**, código **5**, conserva `com.bobtv.helloworld` y el certificado de las versiones anteriores.
+App IPTV nativa en Kotlin y XML para Android 10 o posterior, manejada con el mando del TV Box. BOBTV **2.2.1**, código **6**, conserva `com.bobtv.helloworld` y el certificado de las versiones anteriores.
 
 ## Instalar como actualización
 
-Entrega: **dist/BOBTV-2.2-Android10.apk**, con archivo SHA-256. Transfiérela por AnyDesk, ábrela en el gestor de archivos e instala como actualización. No hace falta ADB. Se conserva **dist/BOBTV-2.1-Numeracion-Android10.apk** para recuperación; Android normalmente impide instalar un código inferior sobre uno superior. Consulta [validación y recuperación](docs/VALIDACION_2.2.md).
+Entrega: **dist/BOBTV-2.2.1-Android10.apk**, con archivo SHA-256. Transfiérela por AnyDesk, ábrela en el gestor de archivos e instala como actualización. No hace falta ADB. Se conservan las entregas anteriores; Android normalmente impide instalar un código inferior sobre uno superior. Consulta [validación de la corrección](docs/VALIDACION_2.2.1.md).
 
 ## Mando y configuración
 
@@ -17,17 +17,17 @@ Entrega: **dist/BOBTV-2.2-Android10.apk**, con archivo SHA-256. Transfiérela po
 | Menú | Configuración | Configuración |
 | Volumen | Volumen del sistema | Volumen del sistema |
 
-Se admiten 1–999, ceros iniciales y confirmación tras 1,5 segundos, con OK o al tercer dígito. Los números pertenecen al catálogo completo: ocultar señales deja huecos; reordenar el M3U cambia los números. Se recuerda el canal por ID. La entrada numérica está desactivada en Configuración y salida. [Guía de numeración](docs/NUMERACION_CANALES.md).
+Se admiten 1–999, ceros iniciales y confirmación tras 1,5 segundos, con OK o al tercer dígito. Todos los canales del catálogo están visibles y se pueden elegir por número; reordenar el M3U cambia los números. Se recuerda el canal por ID. La entrada numérica está desactivada en Configuración y salida. [Guía de numeración](docs/NUMERACION_CANALES.md).
 
-Configuración conserva **Exportar logs al portapapeles**. Atrás devuelve el foco a la pantalla anterior. El aviso del canal dura cinco segundos. Los fallos ofrecen **Reintentar** y **Aceptar y cambiar**; izquierda/derecha y OK eligen la acción. Atrás abre la lista. No se cambia a otro canal automáticamente por un error.
+Configuración incluye **Guardar log TXT en Descargas** y conserva **Exportar logs al portapapeles**. El archivo `BOBTV-log-AAAA-MM-DD_HH-mm-ss-SSS.txt` contiene el diagnóstico de la sesión en UTF-8, con datos sensibles redactados. Se guarda en la carpeta pública Descargas mediante MediaStore, sin permisos de almacenamiento, y se confirma con un aviso. Si falla la escritura, se intenta eliminar la entrada incompleta. Atrás devuelve el foco a la pantalla anterior. El aviso del canal dura cinco segundos. Los fallos ofrecen **Reintentar** y **Aceptar y cambiar**; izquierda/derecha y OK eligen la acción. Atrás abre la lista. No se cambia a otro canal automáticamente por un error.
 
 ## Disponibilidad y Unitel
 
 Un corte, timeout, error de códec o agotamiento de reintentos no demuestra que la emisión esté offline. Los canales verificados permanecen seleccionables durante problemas transitorios. Confirmar indisponibilidad requiere dos evidencias concluyentes separadas al menos 15 segundos, con red operativa, para todas las fuentes del canal. Los errores de acceso y los resultados inconclusos se mantienen diferenciados.
 
-Las tres entradas `UnitelSantaCruz.bo@SD`, `UnitelLaPaz.bo@SD` y `UnitelCochabamba.bo@SD` permanecen visibles incluso confirmadas offline. Conservan número y estado real, y pueden elegirse por lista o dígitos. El aviso permite reintentar o elegir otro canal. Red Uno y Bolivisión no tienen esta excepción. Unitel offline no cuenta como disponible ni se usa para cambios automáticos o zapping.
+Desde 2.2.1, **todos los canales del catálogo** aparecen desde la carga inicial, incluso sin red, pendientes de comprobación, con resultados inconclusos o confirmados sin señal. Se pueden intentar por lista o dígitos; mostrar un canal no lo cuenta como activo. Las flechas incluyen señales pendientes y excluyen las confirmadas offline. El arranque y **Aceptar y cambiar** siguen usando únicamente fuentes con evidencia positiva reciente. Unitel conserva su aviso personalizado.
 
-Los probes comprueban manifiesto y muestra de segmento con un trabajador, diez segundos por fuente y rondas de hasta 30 fuentes/60 segundos. Se programan cada dos minutos y ceden prioridad durante arranque, cortes o presión de recursos. No crean otro reproductor. Las señales ocultas permanecen en el catálogo.
+Los probes comprueban manifiesto y muestra de segmento con un trabajador, diez segundos por fuente y rondas de hasta 30 fuentes/60 segundos. Se programan cada dos minutos y ceden prioridad durante arranque, cortes o presión de recursos. Las rondas reanudadas priorizan fuentes pendientes o comprobadas hace más tiempo para evitar repetir solo el inicio del catálogo. No crean otro reproductor.
 
 ## Reproducción en equipos de 1 GB
 
@@ -75,4 +75,4 @@ Desde PowerShell:
     $signingStore = Join-Path $env:USERPROFILE '.android/debug.keystore'
     .\gradlew.bat --no-daemon "-Pandroid.injected.signing.store.file=$signingStore" "-Pandroid.injected.signing.store.password=android" "-Pandroid.injected.signing.key.alias=androiddebugkey" "-Pandroid.injected.signing.key.password=android" :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 
-Los informes quedan en app/build/reports. Se aprobaron **113 pruebas JVM** y lint con **0 errores y las 5 advertencias anteriores**; la compilación y firma de 2.2 se verificaron. No se hacen verificaciones visuales automatizadas. Las metas de PSS, mando, frames y continuidad requieren los logs de las pruebas manuales en el TV Box.
+Los informes quedan en app/build/reports. Los resultados de 2.2.1 se documentan en [validación](docs/VALIDACION_2.2.1.md). No se hacen verificaciones visuales automatizadas. Las metas de PSS, mando, frames y continuidad requieren los logs de las pruebas manuales en el TV Box.

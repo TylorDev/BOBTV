@@ -3,13 +3,16 @@ package com.bobtv.helloworld
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ContentValues
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.provider.MediaStore
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
@@ -24,6 +27,9 @@ import com.bobtv.helloworld.player.FailureCategory
 import com.bobtv.helloworld.network.BoundedHttpSession
 import com.bobtv.helloworld.player.TvPlayer
 import java.io.File
+import java.io.IOException
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
@@ -54,6 +60,7 @@ class MainActivity : Activity() {
     private var destroyed = false
     private var initialLoading = false
     private var refreshing = false
+    @Volatile private var savingLogs = false
     private var scanning = false
     private var autoStartPending = true
     private var preferredId: String? = null
@@ -94,7 +101,8 @@ class MainActivity : Activity() {
                     log.info("Probe.HTTP", "channel=" + key.channelId + " source=" + key.url + " · " + message)
                 }))
         })
-        screen = TvScreen(this, ::selectChannel, { refreshCatalogue(manual = true) }, ::acknowledgeFailure, ::exportLogs, ::finish, ::retryCurrentChannel)
+        screen = TvScreen(this, ::selectChannel, { refreshCatalogue(manual = true) }, ::acknowledgeFailure,
+            ::exportLogs, ::finish, ::retryCurrentChannel, ::saveLogsToDownloads)
         tvPlayer = TvPlayer(this, findViewById(R.id.player_view), log, ::onPlaybackEvent)
         resourceMonitor = ResourceMonitor(this, log, tvPlayer::onResources)
         network = NetworkMonitor(this, ::onNetworkChanged)
@@ -138,6 +146,7 @@ class MainActivity : Activity() {
                     health.setCatalogue(channels, reset = true)
                     catalogueDescription = getString(if (catalogue.fromCache) R.string.saved_catalogue else R.string.initial_catalogue)
                     log.info("Catalogue", catalogueDescription + " · channels=" + channels.size)
+                    updateAvailabilityUi()
                     checkAvailability()
                     refreshCatalogue()
                 }.onFailure { error ->
@@ -183,6 +192,7 @@ class MainActivity : Activity() {
                         log.warn("Catalogue", "Keeping previous catalogue · " + elapsed + " ms", result.error)
                     }
                 }
+                updateAvailabilityUi()
                 checkAvailability()
             }
         }
@@ -359,6 +369,51 @@ class MainActivity : Activity() {
         } catch (error: Exception) {
             log.error("Main", "Clipboard export failed", error)
             Toast.makeText(this, R.string.logs_copy_failed, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun saveLogsToDownloads() {
+        if (savingLogs || destroyed) return
+        savingLogs = true
+        summarizeRemote()
+        val filename = "BOBTV-log-" + LocalDateTime.now()
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS")) + ".txt"
+        log.info("Main", "Saving session log to Downloads/$filename")
+        val snapshot = log.export()
+        io.execute {
+            val result = runCatching {
+                val resolver = contentResolver
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, filename)
+                    put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    put(MediaStore.Downloads.IS_PENDING, 1)
+                }
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: throw IOException("Unable to create Downloads entry")
+                try {
+                    val output = resolver.openOutputStream(uri)
+                        ?: throw IOException("Unable to open log output stream")
+                    output.bufferedWriter(Charsets.UTF_8).use { it.write(snapshot) }
+                    val published = resolver.update(uri, ContentValues().apply {
+                        put(MediaStore.Downloads.IS_PENDING, 0)
+                    }, null, null)
+                    if (published != 1) throw IOException("Unable to publish Downloads entry")
+                } catch (error: Exception) {
+                    runCatching { resolver.delete(uri, null, null) }
+                        .onFailure { error.addSuppressed(it) }
+                    throw error
+                }
+            }
+            result.onSuccess { log.info("Main", "Session log saved to Downloads/$filename") }
+                .onFailure { log.error("Main", "Saving session log to Downloads failed", it) }
+            savingLogs = false
+            handler.post {
+                if (destroyed || !started) return@post
+                val message = if (result.isSuccess) getString(R.string.logs_saved, filename)
+                    else getString(R.string.logs_save_failed)
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            }
         }
     }
 
