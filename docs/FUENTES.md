@@ -58,10 +58,12 @@ La lista también se descarga al abrir y cada 30 minutos mientras la app está a
 
 ## Disponibilidad y diagnóstico
 
-La app comprueba las señales desde la red del TV box al abrir, al actualizar y cada dos minutos mientras está activa. Valida el manifiesto y una muestra de datos de un segmento, con dos comprobaciones simultáneas y un límite de diez segundos por fuente.
+BOBTV 2.2 comprueba las señales desde la red del TV box. Valida manifiesto y muestra de segmento con un trabajador, límite de diez segundos por fuente y rondas de hasta 30 fuentes/60 segundos. Los intervalos nominales de dos minutos se posponen durante arranque, cortes y presión de recursos.
 
-Solo aparecen canales con alguna fuente disponible. Los canales ocultos permanecen en el catálogo y reaparecen si recuperan señal. La reproducción puede fallar entre comprobaciones; el reproductor entonces cambia de fuente y permite dos nuevas pasadas, con esperas de dos y cinco segundos.
+Los canales verificados permanecen seleccionables durante errores transitorios, incluso si se agotan reintentos. Ocultarlos exige indisponibilidad concluyente de todas sus fuentes, repetida con red operativa. Los tres IDs de Unitel de esta guía siempre permanecen visibles, sin contarse como online cuando están offline. Red Uno y Bolivisión no tienen esa excepción. Los canales ocultos siguen en el catálogo y pueden recuperar disponibilidad.
 
-Si se agotan las fuentes, la app registra los errores y muestra **Aceptar y cambiar**. Al aceptar abre el siguiente canal en línea; si ninguno está disponible muestra la lista vacía con sus acciones.
+Se conservan alternativas y tres pasadas con esperas de dos y cinco segundos; 2.2 añade límites comunes de tiempo/preparaciones y cooldown. Los fallos ofrecen Reintentar y Aceptar y cambiar; Unitel permite Elegir otro canal. Solo se eligen destinos con evidencia positiva reciente. Un error local del códec no confirma caída del emisor. Al volver la conexión se recupera automáticamente el canal seleccionado.
+
+El catálogo admite 16 URLs por canal, 4096 fuentes totales, 999 canales, 1 MiB y líneas de 8 KiB. Exceder un límite rechaza la lista completa y conserva la caché anterior. Las fuentes nuevas de Red Uno con MP2 requieren validación física de ese audio; la alternativa AAC existente permanece disponible.
 
 Para copiar el diagnóstico pulsa **Menú → Exportar logs al portapapeles**, o **OK → Configuración → Exportar logs al portapapeles**. Los logs incluyen solo la sesión actual, hasta 2.000 eventos y 256 KiB. Las credenciales y los parámetros de las URLs se ocultan.
