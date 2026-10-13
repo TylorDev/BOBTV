@@ -13,7 +13,8 @@
             android:layout_gravity="bottom|start" android:orientation="vertical"
             android:padding="@dimen/space_medium" android:background="@drawable/panel_background">
             <TextView android:id="@+id/channel_title" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:textColor="@color/text_primary" android:textSize="@dimen/channel_text_size" android:fontFamily="sans-serif-medium" />
+                android:textColor="@color/text_primary" android:textSize="@dimen/channel_text_size"
+                android:accessibilityLiveRegion="polite" android:fontFamily="sans-serif-medium" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="@string/remote_help" android:textColor="@color/text_secondary" android:textSize="@dimen/help_text_size" />
         </LinearLayout>
@@ -24,5 +25,10 @@
         <include layout="@layout/settings_menu" />
         <include layout="@layout/playback_error" />
         <include layout="@layout/exit_confirmation" />
+        <TextView android:id="@+id/channel_input" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_gravity="top|end" android:padding="@dimen/space_medium"
+            android:background="@drawable/panel_background" android:textColor="@color/text_primary"
+            android:textSize="@dimen/channel_text_size" android:fontFamily="sans-serif-medium"
+            android:focusable="false" android:accessibilityLiveRegion="polite" android:visibility="gone" />
     </FrameLayout>
 </FrameLayout>

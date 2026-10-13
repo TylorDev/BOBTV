@@ -2,8 +2,8 @@
 <resources>
     <string name="app_name">BOBTV</string>
     <string name="channels_title">Canales</string>
-    <string name="remote_help">↑↓ Cambiar canal · OK Canales · Menú Configuración</string>
-    <string name="list_help">↑↓ Elegir · OK Ver · Atrás Volver</string>
+    <string name="remote_help">↑↓ Cambiar canal · 0–9 Canal · OK Canales · Menú Configuración</string>
+    <string name="list_help">↑↓ Elegir · 0–9 Canal · OK Ver · Atrás Volver</string>
     <string name="loading_channel">Cargando canal…</string>
     <string name="retrying_channel">Reconectando el canal…</string>
     <string name="channel_unavailable">Este canal no está disponible</string>
@@ -37,5 +37,9 @@
     <string name="keep_watching">Seguir viendo</string>
     <string name="exit_app">Salir</string>
     <string name="dialog_help">←→ Elegir · OK Confirmar · Atrás Volver</string>
-    <string name="channel_number">%1$02d</string>
+    <string name="channel_label">%1$s - %2$s</string>
+    <string name="channel_outside_catalogue">%1$s · Fuera de la lista</string>
+    <string name="channel_input">Canal: %1$s</string>
+    <string name="channel_number_missing">Canal %1$s no existe</string>
+    <string name="channel_number_unavailable">Canal %1$s no disponible</string>
 </resources>

@@ -20,15 +20,18 @@ Si después de actualizar no funciona ninguna conexión, reinicia el dispositivo
 | Botón | Mientras ves TV | Dentro de la lista |
 |---|---|---|
 | Arriba / abajo | Siguiente / anterior en línea, con recorrido circular | Mover la selección |
-| OK | Abrir la lista | Ver el canal seleccionado |
-| Atrás | Confirmar salida | Cerrar la lista |
+| 0–9 | Ir al canal por número | Ir al canal por número |
+| OK | Confirmar el número pendiente o abrir la lista | Confirmar el número pendiente o ver la selección |
+| Atrás | Cancelar el número pendiente o confirmar salida | Cancelar el número pendiente o cerrar la lista |
 | CH+ / CH− | Siguiente / anterior | — |
 | Menú | Abrir Configuración | Abrir Configuración |
 | Volumen | Control del sistema | Control del sistema |
 
-En los mensajes con dos botones, usa izquierda / derecha y OK. Al salir, **Seguir viendo** queda seleccionado inicialmente. El nombre del canal y la ayuda desaparecen después de cinco segundos. La lista y los errores permanecen hasta que actúes.
+Escribe de uno a tres dígitos: `5`, `05` y `005` seleccionan el mismo canal. El cambio se confirma tras 1,5 segundos sin escribir, al completar tres dígitos o con OK. Los números se asignan por el catálogo M3U completo, del 1 al 999: ocultar canales sin señal deja huecos y conserva los números restantes; reordenar el catálogo cambia la numeración. Consulta [la guía de numeración y cancelaciones](docs/NUMERACION_CANALES.md).
 
-Si una fuente falla, la app prueba las alternativas del mismo canal y permite dos nuevas pasadas, después de 2 y 5 segundos. Si se agotan, registra el diagnóstico y muestra **Aceptar y cambiar**. Solo al aceptar pasa al siguiente canal en línea; Atrás abre la lista sin cambiar automáticamente. Los botones de cambio de canal no saltan este aviso. No reproduce ni comprueba señales en segundo plano.
+En los mensajes con dos botones, usa izquierda / derecha y OK. Al salir, **Seguir viendo** queda seleccionado inicialmente. El aviso `05 - NOMBRE DEL CANAL` y la ayuda desaparecen después de cinco segundos, también durante carga o fallo. La lista y los errores permanecen hasta que actúes.
+
+Si una fuente falla, la app prueba las alternativas del mismo canal y permite dos nuevas pasadas, después de 2 y 5 segundos. Si se agotan, registra el diagnóstico y muestra **Aceptar y cambiar**. Al aceptar pasa al siguiente canal en línea; Atrás abre la lista sin cambiar automáticamente. Las flechas y CH+/CH− no saltan este aviso; también puedes elegir otro canal disponible por número. No reproduce ni comprueba señales en segundo plano.
 
 ## Configuración y diagnóstico
 
@@ -81,7 +84,7 @@ Compilación y comprobaciones desde PowerShell:
 
 El APK de Gradle está en app/build/outputs/apk/debug/app-debug.apk. Copia la entrega a dist para conservarla entre compilaciones. El certificado de depuración existente debe conservarse para las futuras actualizaciones.
 
-Las 44 pruebas de esta funcionalidad cubren el catálogo y caché anteriores, agrupación de fuentes, regiones separadas, disponibilidad y recuperación, errores HTTP, límites de lectura, segmentos HLS, cancelación, concurrencia, reintentos y logs. Los informes de Gradle quedan en app/build/reports.
+Las 77 pruebas cubren catálogo y caché, agrupación de fuentes, regiones separadas, disponibilidad y recuperación, errores HTTP, límites de lectura, segmentos HLS, cancelación, concurrencia, reintentos y logs. Incluyen 33 casos de numeración, recorrido circular, teclas del mando y selección numérica con tiempo simulado. Los informes de Gradle quedan en app/build/reports.
 
 Esta entrega se valida mediante compilación, pruebas unitarias y lint. No se realizaron verificaciones visuales ni se inició el emulador. La [validación de 2.0](docs/VALIDACION.md) conserva el historial de las pruebas anteriores.
 

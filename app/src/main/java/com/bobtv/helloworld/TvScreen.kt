@@ -9,7 +9,10 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ListView
 import android.widget.TextView
+import com.bobtv.helloworld.controls.ChannelTuning
+import com.bobtv.helloworld.controls.RemoteDigits
 import com.bobtv.helloworld.data.Channel
+import com.bobtv.helloworld.data.ChannelNumbers
 import com.bobtv.helloworld.player.TvPlayer
 
 class TvScreen(
@@ -25,7 +28,6 @@ class TvScreen(
     private var settingsReturn = Mode.PLAYBACK
     private var status = TvPlayer.Status.LOADING
     private var channels = emptyList<Channel>()
-    private var catalogue = emptyList<Channel>()
     private var current: Channel? = null
     private var menuCursor = 0
     private var overlayVisible = true
@@ -41,6 +43,7 @@ class TvScreen(
     private val loading = view<TextView>(R.id.loading)
     private val overlay = view<View>(R.id.channel_overlay)
     private val title = view<TextView>(R.id.channel_title)
+    private val numberInput = view<TextView>(R.id.channel_input)
     private val scrim = view<View>(R.id.scrim)
     private val list = view<ListView>(R.id.channel_list)
     private val refresh = view<Button>(R.id.refresh_channels)
@@ -51,6 +54,12 @@ class TvScreen(
     private val accept = view<Button>(R.id.accept_change)
     private val adapter = ChannelAdapter(activity)
     private val hideOverlay = Runnable { overlayVisible = false; render() }
+    private val tuning = ChannelTuning(
+        postDelayed = { action, delay -> handler.postDelayed(action, delay) },
+        removeCallbacks = handler::removeCallbacks,
+        onChanged = ::render,
+        onSelect = onSelect,
+    )
 
     init {
         list.adapter = adapter
@@ -84,25 +93,29 @@ class TvScreen(
         render()
     }
 
-    fun setCatalogue(catalogue: List<Channel>, updated: List<Channel>) {
-        this.catalogue = catalogue
+    fun setCatalogue(catalogue: List<Channel>, available: List<Channel> = catalogue) {
+        val previousNumber = tuning.numbers.numberOf(current?.id)
         val focusedId = channels.getOrNull(menuCursor)?.id
         val footerOffset = (menuCursor - channels.size).takeIf { it >= 0 }
-        channels = updated
-        adapter.channels = updated
+        tuning.setCatalogue(catalogue, available)
+        channels = tuning.available
+        adapter.setCatalogue(channels, tuning.numbers)
         menuCursor = if (footerOffset != null) channels.size + footerOffset.coerceAtMost(1) else
             channels.indexOfFirst { it.id == focusedId }.takeIf { it >= 0 }
                 ?: channels.indexOfFirst { it.id == current?.id }.coerceAtLeast(0)
         updateTitle()
+        if (current != null && mode == Mode.PLAYBACK &&
+            previousNumber != tuning.numbers.numberOf(current?.id)) showOverlay()
         if (mode == Mode.CHANNELS) focusMenuCursor()
+        render()
     }
 
     fun setCurrentChannel(channel: Channel) {
+        tuning.cancel()
         current = channel
         status = TvPlayer.Status.LOADING
         updateTitle()
         setMode(Mode.PLAYBACK)
-        showOverlay()
     }
 
     fun setPlaybackStatus(updated: TvPlayer.Status) {
@@ -123,6 +136,7 @@ class TvScreen(
     }
 
     fun showEmptyChannels() {
+        tuning.cancel()
         current = null
         status = TvPlayer.Status.FAILED
         updateTitle()
@@ -135,8 +149,14 @@ class TvScreen(
     }
 
     private fun updateTitle() {
-        val displayed = catalogue.firstOrNull { it.id == current?.id } ?: current
-        title.text = displayed?.name.orEmpty()
+        val number = tuning.numbers.numberOf(current?.id)
+        val displayed = number?.let(tuning.numbers::channelAt) ?: current
+        current = displayed
+        title.text = when {
+            displayed == null -> ""
+            number != null -> activity.getString(R.string.channel_label, ChannelNumbers.format(number), displayed.name)
+            else -> activity.getString(R.string.channel_outside_catalogue, displayed.name)
+        }
         view<TextView>(R.id.error_title).text = displayed?.let {
             activity.getString(R.string.channel_unavailable_named, it.name)
         } ?: activity.getString(R.string.channel_unavailable)
@@ -163,6 +183,7 @@ class TvScreen(
     }
 
     private fun setMode(updated: Mode) {
+        if (updated != mode) tuning.cancel()
         mode = updated
         render()
         when (updated) {
@@ -192,13 +213,15 @@ class TvScreen(
     }
 
     private fun changeChannel(delta: Int) {
-        if (channels.isEmpty()) return
-        val index = channels.indexOfFirst { it.id == current?.id }
-        val next = if (index < 0) 0 else (index + delta + channels.size) % channels.size
-        onSelect(channels[next])
+        val next = tuning.adjacent(current?.id, delta) ?: return
+        if (next.id == current?.id) showOverlay() else onSelect(next)
     }
 
     fun requestBack() {
+        if (tuning.isPending) {
+            tuning.cancel()
+            return
+        }
         when (mode) {
             Mode.CHANNELS -> if (current == null && status == TvPlayer.Status.FAILED) setMode(Mode.EXIT)
                 else setMode(Mode.PLAYBACK)
@@ -218,6 +241,20 @@ class TvScreen(
         if (event.action == KeyEvent.ACTION_UP && handledKeys.remove(key)) return true
         if (event.action != KeyEvent.ACTION_DOWN) return false
         if (key in handledKeys) return true
+        val canTune = mode == Mode.PLAYBACK || mode == Mode.CHANNELS
+        val digit = RemoteDigits.fromKeyCode(key)
+        if (canTune && digit != null) {
+            tuning.append(digit, event.repeatCount)
+            handledKeys.add(key)
+            return true
+        }
+        if (canTune) {
+            when (key) {
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
+                KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_CHANNEL_DOWN -> tuning.cancel()
+            }
+        }
         val consumed = when (key) {
             KeyEvent.KEYCODE_BACK -> { requestBack(); true }
             KeyEvent.KEYCODE_MENU -> {
@@ -242,6 +279,7 @@ class TvScreen(
             }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                 when {
+                    canTune && tuning.isPending -> { tuning.confirm(); true }
                     mode == Mode.CHANNELS -> {
                         if (menuCursor == channels.size) onRefresh()
                         else if (menuCursor > channels.size) showSettings()
@@ -267,12 +305,23 @@ class TvScreen(
         error.visibility = visible(mode == Mode.PLAYBACK && current != null && status == TvPlayer.Status.FAILED)
         loading.visibility = visible(mode == Mode.PLAYBACK &&
             (current != null || checking) && (status == TvPlayer.Status.LOADING || status == TvPlayer.Status.RETRYING))
-        overlay.visibility = visible(mode == Mode.PLAYBACK && current != null && overlayVisible && status != TvPlayer.Status.FAILED)
+        overlay.visibility = visible(mode == Mode.PLAYBACK && current != null && overlayVisible)
         scrim.visibility = visible(mode != Mode.PLAYBACK || status == TvPlayer.Status.FAILED)
+        val notice = tuning.notice
+        numberInput.text = when {
+            tuning.isPending -> activity.getString(R.string.channel_input, tuning.digits)
+            notice != null -> activity.getString(
+                if (notice.kind == ChannelTuning.NoticeKind.MISSING) R.string.channel_number_missing
+                else R.string.channel_number_unavailable, notice.number)
+            else -> ""
+        }
+        numberInput.visibility = visible((mode == Mode.PLAYBACK || mode == Mode.CHANNELS) &&
+            (tuning.isPending || notice != null))
         if (mode != Mode.CHANNELS) adapter.highlightedPosition = -1
     }
 
     fun stop() {
+        tuning.cancel()
         handler.removeCallbacksAndMessages(null)
         handledKeys.clear()
     }

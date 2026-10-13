@@ -3,7 +3,8 @@
     android:layout_width="match_parent" android:layout_height="wrap_content"
     android:minHeight="@dimen/channel_row_height" android:orientation="horizontal" android:gravity="center_vertical"
     android:padding="@dimen/space_medium" android:background="@drawable/focus_background" android:descendantFocusability="blocksDescendants">
-    <TextView android:id="@+id/row_number" android:layout_width="40dp" android:layout_height="wrap_content"
+    <TextView android:id="@+id/row_number" android:layout_width="wrap_content" android:minWidth="@dimen/channel_number_width"
+        android:layout_height="wrap_content"
         android:textSize="@dimen/help_text_size" android:textColor="@color/focus_text_selector" android:duplicateParentState="true" />
     <TextView android:id="@+id/row_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
         android:layout_marginStart="@dimen/space_medium" android:textSize="@dimen/channel_text_size"

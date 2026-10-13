@@ -32,6 +32,7 @@ object M3uParser {
             }
         }
         require(channels.isNotEmpty()) { "Playlist has no valid channels" }
+        require(channels.size <= ChannelNumbers.MAX_CHANNELS) { "Playlist exceeds ${ChannelNumbers.MAX_CHANNELS} channels" }
         return channels.values.toList()
     }
 

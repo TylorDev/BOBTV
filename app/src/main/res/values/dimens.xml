@@ -6,6 +6,7 @@
     <dimen name="space_medium">16dp</dimen>
     <dimen name="space_large">24dp</dimen>
     <dimen name="channel_row_height">76dp</dimen>
+    <dimen name="channel_number_width">64dp</dimen>
     <dimen name="button_height">64dp</dimen>
     <dimen name="focus_border_width">3dp</dimen>
     <dimen name="surface_radius">8dp</dimen>
