@@ -4,14 +4,14 @@ App IPTV nativa en Kotlin para un TV box con Android 10 o posterior. Se abre dir
 
 ## Instalar sin USB
 
-APK de entrega: **dist/BOBTV-2.0-Android10.apk**.
+APK de entrega: **dist/BOBTV-2.1-Android10.apk**. La copia de esta tarea queda también en **dist/BOBTV-2.1-Configuracion-Android10.apk**.
 
 1. Transfiere el APK al TV box mediante AnyDesk.
 2. En el TV box, abre el gestor de archivos y selecciona el APK.
 3. Si Android lo solicita, permite instalar aplicaciones desconocidas para ese gestor.
 4. Instala como actualización de la app anterior y abre **BOBTV**.
 
-Se mantiene el identificador com.bobtv.helloworld y el certificado de depuración anterior. La versión es **2.0**, código **3**, con mínimo Android 10 / API 29. Para la prueba inicial puedes elegir **RED UNO** desde la lista; varias fuentes originales devolvieron errores desde la red de desarrollo. Consulta [la validación](docs/VALIDACION.md).
+Se mantiene el identificador com.bobtv.helloworld y el certificado de depuración anterior. La versión es **2.1**, código **4**, con mínimo Android 10 / API 29. Consulta [la validación de esta versión](docs/VALIDACION_2.1.md).
 
 Si después de actualizar no funciona ninguna conexión, reinicia el dispositivo una vez. En el emulador Android TV 10 los permisos nuevos de Internet se recargaron correctamente tras reiniciarlo.
 
@@ -19,15 +19,32 @@ Si después de actualizar no funciona ninguna conexión, reinicia el dispositivo
 
 | Botón | Mientras ves TV | Dentro de la lista |
 |---|---|---|
-| Arriba / abajo | Siguiente / anterior, con recorrido circular | Mover la selección |
+| Arriba / abajo | Siguiente / anterior en línea, con recorrido circular | Mover la selección |
 | OK | Abrir la lista | Ver el canal seleccionado |
 | Atrás | Confirmar salida | Cerrar la lista |
 | CH+ / CH− | Siguiente / anterior | — |
+| Menú | Abrir Configuración | Abrir Configuración |
 | Volumen | Control del sistema | Control del sistema |
 
 En los mensajes con dos botones, usa izquierda / derecha y OK. Al salir, **Seguir viendo** queda seleccionado inicialmente. El nombre del canal y la ayuda desaparecen después de cinco segundos. La lista y los errores permanecen hasta que actúes.
 
-Una señal fallida se reintenta dos veces, después de 2 y 5 segundos, y luego permite **Reintentar** o **Elegir canal**. La app mantiene el canal seleccionado. No reproduce en segundo plano.
+Si una fuente falla, la app prueba las alternativas del mismo canal y permite dos nuevas pasadas, después de 2 y 5 segundos. Si se agotan, registra el diagnóstico y muestra **Aceptar y cambiar**. Solo al aceptar pasa al siguiente canal en línea; Atrás abre la lista sin cambiar automáticamente. Los botones de cambio de canal no saltan este aviso. No reproduce ni comprueba señales en segundo plano.
+
+## Configuración y diagnóstico
+
+Pulsa **Menú**, o **OK → Configuración** al pie de la lista. El menú contiene únicamente **Exportar logs al portapapeles**. Atrás devuelve a la pantalla anterior y conserva el foco.
+
+La exportación copia texto con la versión, dispositivo, canal, fuente, tiempos de conexión, errores HTTP/Media3, excepciones, reintentos y cambios de fuente. El historial corresponde a la sesión actual, con un máximo de 2.000 eventos y 256 KiB; se descartan los más antiguos. Las credenciales y los parámetros de las URLs se ocultan tanto en el informe como en Logcat.
+
+Android 10–12 muestra una confirmación de copia; Android 13 o posterior utiliza la confirmación del sistema.
+
+## Canales en línea y fuentes alternativas
+
+La lista y el recorrido del mando muestran solo canales con alguna fuente confirmada disponible desde la red del TV box. Se comprueba el manifiesto HLS y una muestra de datos de un segmento, al abrir, al actualizar y cada dos minutos mientras la app está activa. Las comprobaciones tienen un límite de diez segundos por fuente y usan dos tareas simultáneas; no crean otro reproductor.
+
+Mientras se comprueban fuentes aparece el progreso. Si no hay señales disponibles, la lista ofrece **Actualizar canales** y **Configuración**. Los canales ocultos permanecen en el catálogo y pueden reaparecer al recuperar señal. Al abrir, se recupera el último canal si está disponible o se reproduce el primero en línea.
+
+Unitel, Red Uno y Bolivisión admiten múltiples URLs por canal repitiendo su tvg-id. Cada variante regional sigue siendo una entrada independiente. Consulta [la guía con los siete identificadores y ejemplos de dos fuentes](docs/FUENTES.md), también publicada en el [repositorio de canales](https://github.com/TylorDev/bobtv-canales#fuentes-alternativas-de-unitel-red-uno-y-bolivisión).
 
 ## Administrar canales sin otra build
 
@@ -35,7 +52,7 @@ Repositorio: [TylorDev/bobtv-canales](https://github.com/TylorDev/bobtv-canales)
 
 La app consulta [canales.m3u en main](https://github.com/TylorDev/bobtv-canales/blob/main/canales.m3u). Edita desde GitHub y guarda con **Commit changes**. La guía del repositorio incluye el formato para altas, cambios y bajas.
 
-Actualiza al abrir, cada 30 minutos mientras está activa y mediante **Actualizar canales** al final de la lista. La actualización no interrumpe el video. Conserva la última lista válida y dispone de una copia inicial con los 13 canales.
+Actualiza al abrir, cada 30 minutos mientras está activa y mediante **Actualizar canales** al final de la lista. La actualización no interrumpe el video y actualiza sus alternativas. Conserva la última lista válida completa y dispone de una copia inicial con los 13 canales.
 
 GitHub puede tardar unos minutos en servir un cambio recién guardado. Si todavía aparece la lista anterior, espera y pulsa **Actualizar canales** otra vez.
 
@@ -58,12 +75,14 @@ Compilación y comprobaciones desde PowerShell:
 
     $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
     $env:GRADLE_USER_HOME = Join-Path (Get-Location).Path '.gradle-user-home'
-    .\gradlew.bat --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+    $env:ANDROID_USER_HOME = Join-Path (Get-Location).Path '.gradle-user-home/android'
+    $signingStore = Join-Path $env:USERPROFILE '.android/debug.keystore'
+    .\gradlew.bat --no-daemon "-Pandroid.injected.signing.store.file=$signingStore" "-Pandroid.injected.signing.store.password=android" "-Pandroid.injected.signing.key.alias=androiddebugkey" "-Pandroid.injected.signing.key.password=android" :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 
 El APK de Gradle está en app/build/outputs/apk/debug/app-debug.apk. Copia la entrega a dist para conservarla entre compilaciones. El certificado de depuración existente debe conservarse para las futuras actualizaciones.
 
-Las diez pruebas cubren el M3U inicial, UTF-8/BOM, comentarios, comas, entradas inválidas, caché, errores de red, cambios de catálogo y los dos reintentos. Los informes de Gradle quedan en app/build/reports.
+Las 44 pruebas de esta funcionalidad cubren el catálogo y caché anteriores, agrupación de fuentes, regiones separadas, disponibilidad y recuperación, errores HTTP, límites de lectura, segmentos HLS, cancelación, concurrencia, reintentos y logs. Los informes de Gradle quedan en app/build/reports.
 
-Se creó el dispositivo virtual **BOBTV_Android10_TV**, con Android TV API 29 y perfil 1080p. Sus archivos están en .tooling/avd y queda registrado para Android Studio. Al finalizar las pruebas se cierra el emulador; puedes iniciarlo desde Device Manager.
+Esta entrega se valida mediante compilación, pruebas unitarias y lint. No se realizaron verificaciones visuales ni se inició el emulador. La [validación de 2.0](docs/VALIDACION.md) conserva el historial de las pruebas anteriores.
 
 Referencias: [Media3](https://developer.android.com/jetpack/androidx/releases/media3), [aplicaciones para TV](https://developer.android.com/training/tv/get-started/create) y [SDK mínimo y de destino](https://developer.android.com/guide/topics/manifest/uses-sdk-element).
