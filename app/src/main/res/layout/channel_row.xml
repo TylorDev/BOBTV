@@ -6,7 +6,13 @@
     <TextView android:id="@+id/row_number" android:layout_width="wrap_content" android:minWidth="@dimen/channel_number_width"
         android:layout_height="wrap_content"
         android:textSize="@dimen/help_text_size" android:textColor="@color/focus_text_selector" android:duplicateParentState="true" />
-    <TextView android:id="@+id/row_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-        android:layout_marginStart="@dimen/space_medium" android:textSize="@dimen/channel_text_size"
-        android:textColor="@color/focus_text_selector" android:duplicateParentState="true" android:fontFamily="sans-serif-medium" />
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+        android:layout_marginStart="@dimen/space_medium" android:orientation="vertical" android:duplicateParentState="true">
+        <TextView android:id="@+id/row_name" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="@dimen/channel_text_size" android:textColor="@color/focus_text_selector"
+            android:duplicateParentState="true" android:fontFamily="sans-serif-medium" />
+        <TextView android:id="@+id/row_status" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="@dimen/help_text_size" android:textColor="@color/focus_text_selector"
+            android:duplicateParentState="true" />
+    </LinearLayout>
 </LinearLayout>

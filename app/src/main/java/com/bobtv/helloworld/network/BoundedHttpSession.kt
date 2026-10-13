@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 data class HttpPayload(val url: String, val bytes: ByteArray)
+class HttpStatusException(val status: Int, val resource: String) : IOException("HTTP $status at $resource")
 
 interface ProbeTransport : AutoCloseable {
     fun fetch(url: String, maxBytes: Int, offset: Long = 0, length: Long? = null,
@@ -51,7 +52,7 @@ class BoundedHttpSession(
                 connection.readTimeout = timeout()
                 connection.instanceFollowRedirects = false
                 connection.useCaches = false
-                connection.setRequestProperty("User-Agent", "BOBTV/2.1")
+                connection.setRequestProperty("User-Agent", "BOBTV/2.2")
                 connection.setRequestProperty("Accept-Encoding", "identity")
                 connection.setRequestProperty("Cache-Control", "no-cache")
                 connection.setRequestProperty("Connection", "close")
@@ -64,7 +65,7 @@ class BoundedHttpSession(
                     target = target.resolve(connection.getHeaderField("Location") ?: throw IOException("Redirect without Location"))
                     return@repeat
                 }
-                if (status !in 200..299) throw IOException("HTTP " + status + " at " + target)
+                if (status !in 200..299) throw HttpStatusException(status, target.toString())
                 if (!complete && offset > 0 && status != 206) throw IOException("Server ignored segment byte range")
                 if (status == 206 && !complete) {
                     val range = connection.getHeaderField("Content-Range").orEmpty()

@@ -80,7 +80,7 @@ class MainActivity : Activity() {
                     log.info("Probe.HTTP", "channel=" + key.channelId + " source=" + key.url + " · " + message)
                 }))
         })
-        screen = TvScreen(this, ::selectChannel, ::refreshCatalogue, ::acknowledgeFailure, ::exportLogs, ::finish)
+        screen = TvScreen(this, ::selectChannel, ::refreshCatalogue, ::acknowledgeFailure, ::exportLogs, ::finish, ::retryCurrentChannel)
         tvPlayer = TvPlayer(this, findViewById(R.id.player_view), log, ::onPlaybackEvent)
         hideSystemBars()
     }
@@ -200,11 +200,10 @@ class MainActivity : Activity() {
     }
 
     private fun availableChannels(): List<Channel> = health.available(channels)
-        .filter { it.id != recovery.failedChannelId }
 
     private fun updateAvailabilityUi() {
         val available = availableChannels()
-        screen.setCatalogue(channels, available)
+        screen.setCatalogue(channels, health.visible(channels), health.navigable(channels), channels.associate { it.id to health.label(it) })
         screen.setAvailability(scanning || initialLoading)
         val count = resources.getQuantityString(R.plurals.active_channels, available.size, available.size)
         val progress = if (scanning) resources.getQuantityString(R.plurals.probe_progress,
@@ -223,7 +222,8 @@ class MainActivity : Activity() {
     private fun selectChannel(channel: Channel) {
         if (!started) return
         val selected = channels.firstOrNull { it.id == channel.id } ?: return
-        val source = health.onlineSources(selected).firstOrNull() ?: return
+        if (selected !in health.visible(channels)) return
+        val source = health.onlineSources(selected).firstOrNull() ?: selected.sources.first()
         autoStartPending = false
         recovery.clear()
         currentChannel = selected
@@ -244,13 +244,13 @@ class MainActivity : Activity() {
             playingSource = key
         }
         if (event.status == TvPlayer.Status.FAILED) {
-            currentChannel?.let(health::markChannelOffline)
             recovery.fail(event.channelId)
             autoStartPending = false
             playingSource = null
             log.error("Main", "Awaiting acknowledgement before changing channel=" + event.channelId + " · " + event.reason)
         }
         screen.setPlaybackStatus(event.status)
+        screen.setFailureMessage(currentChannel?.id in ChannelVisibilityPolicy.alwaysVisibleIds)
         updateAvailabilityUi()
         if (event.status == TvPlayer.Status.FAILED) window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -269,6 +269,8 @@ class MainActivity : Activity() {
             updateAvailabilityUi()
         }
     }
+
+    private fun retryCurrentChannel() { currentChannel?.let(::selectChannel) }
 
     private fun exportLogs() {
         log.info("Main", "Exporting session logs to clipboard")

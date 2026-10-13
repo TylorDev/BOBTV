@@ -7,7 +7,13 @@
     <string name="loading_channel">Cargando canal…</string>
     <string name="retrying_channel">Reconectando el canal…</string>
     <string name="channel_unavailable">Este canal no está disponible</string>
-    <string name="channel_unavailable_help">Ninguna fuente pudo reproducirse. Registramos el detalle en los logs. Al aceptar, cambiaremos al siguiente canal en línea.</string>
+    <string name="channel_unavailable_help">No pudimos reproducir esta señal. Puedes reintentar o cambiar a otro canal disponible. El detalle está en los logs.</string>
+    <string name="unitel_unavailable">La señal de Unitel no está disponible en este momento. Puedes reintentar o elegir otro canal.</string>
+    <string name="retry_channel">Reintentar</string>
+    <string name="choose_channel">Elegir otro canal</string>
+    <string name="waiting_network">Sin conexión. Recuperaremos este canal al volver la red.</string>
+    <string name="resource_pressure">El dispositivo necesita liberar recursos. Puedes reintentar o elegir otro canal.</string>
+    <string name="thermal_pause">El dispositivo está demasiado caliente. Reanudaremos cuando se recupere.</string>
     <string name="channel_unavailable_named">%1$s no está disponible</string>
     <string name="accept_change">Aceptar y cambiar</string>
     <string name="failure_help">OK Aceptar · Menú Configuración · Atrás Canales</string>
@@ -18,7 +24,7 @@
     <string name="logs_copied">Logs copiados al portapapeles</string>
     <string name="logs_copy_failed">No se pudieron copiar los logs</string>
     <string name="checking_channels">Comprobando canales en línea…</string>
-    <string name="no_online_channels">No hay canales en línea.\nPuedes actualizar la lista o exportar los logs desde Configuración.</string>
+    <string name="no_online_channels">Sin señales confirmadas disponibles.\nPuedes actualizar la lista o exportar los logs desde Configuración.</string>
     <plurals name="probe_progress">
         <item quantity="one">%1$d fuente pendiente</item>
         <item quantity="other">%1$d fuentes pendientes</item>

@@ -13,10 +13,12 @@ class ChannelAdapter(context: Context) : BaseAdapter() {
     private val inflater = LayoutInflater.from(context)
     private var channels: List<Channel> = emptyList()
     private var numbers = ChannelNumbers(emptyList())
+    private var labels: Map<String, String> = emptyMap()
     var highlightedPosition = -1
         set(value) { field = value; notifyDataSetChanged() }
 
-    fun setCatalogue(available: List<Channel>, numbers: ChannelNumbers) {
+    fun setCatalogue(available: List<Channel>, numbers: ChannelNumbers, labels: Map<String, String> = emptyMap()) {
+        this.labels = labels
         channels = available
         this.numbers = numbers
         notifyDataSetChanged()
@@ -32,6 +34,7 @@ class ChannelAdapter(context: Context) : BaseAdapter() {
         row.isActivated = position == highlightedPosition
         row.findViewById<TextView>(R.id.row_number).text = number
         row.findViewById<TextView>(R.id.row_name).text = channel.name
+        row.findViewById<TextView>(R.id.row_status).text = labels[channel.id].orEmpty()
         row.contentDescription = row.context.getString(R.string.channel_label, number, channel.name)
         return row
     }

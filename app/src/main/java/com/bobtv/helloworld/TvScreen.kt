@@ -22,12 +22,14 @@ class TvScreen(
     private val onAcknowledge: () -> Unit,
     private val onExportLogs: () -> Unit,
     private val onExit: () -> Unit,
+    private val onRetry: () -> Unit = {},
 ) {
     private enum class Mode { PLAYBACK, CHANNELS, SETTINGS, EXIT }
     private var mode = Mode.PLAYBACK
     private var settingsReturn = Mode.PLAYBACK
     private var status = TvPlayer.Status.LOADING
     private var channels = emptyList<Channel>()
+    private var navigable = emptyList<Channel>()
     private var current: Channel? = null
     private var menuCursor = 0
     private var overlayVisible = true
@@ -52,6 +54,7 @@ class TvScreen(
     private val empty = view<TextView>(R.id.empty_channels)
     private val catalogueStatus = view<TextView>(R.id.catalogue_status)
     private val accept = view<Button>(R.id.accept_change)
+    private val retry = view<Button>(R.id.retry_channel)
     private val adapter = ChannelAdapter(activity)
     private val hideOverlay = Runnable { overlayVisible = false; render() }
     private val tuning = ChannelTuning(
@@ -69,6 +72,7 @@ class TvScreen(
         openSettings.setOnClickListener { menuCursor = channels.size + 1; showSettings() }
         exportLogs.setOnClickListener { onExportLogs() }
         accept.setOnClickListener { onAcknowledge() }
+        retry.setOnClickListener { onRetry() }
         view<Button>(R.id.keep_watching).setOnClickListener { resumeView() }
         view<Button>(R.id.exit_app).setOnClickListener { onExit() }
         root.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
@@ -93,13 +97,15 @@ class TvScreen(
         render()
     }
 
-    fun setCatalogue(catalogue: List<Channel>, available: List<Channel> = catalogue) {
+    fun setCatalogue(catalogue: List<Channel>, available: List<Channel> = catalogue,
+                     navigable: List<Channel> = available, labels: Map<String, String> = emptyMap()) {
+        this.navigable = navigable
         val previousNumber = tuning.numbers.numberOf(current?.id)
         val focusedId = channels.getOrNull(menuCursor)?.id
         val footerOffset = (menuCursor - channels.size).takeIf { it >= 0 }
         tuning.setCatalogue(catalogue, available)
         channels = tuning.available
-        adapter.setCatalogue(channels, tuning.numbers)
+        adapter.setCatalogue(channels, tuning.numbers, labels)
         menuCursor = if (footerOffset != null) channels.size + footerOffset.coerceAtMost(1) else
             channels.indexOfFirst { it.id == focusedId }.takeIf { it >= 0 }
                 ?: channels.indexOfFirst { it.id == current?.id }.coerceAtLeast(0)
@@ -126,6 +132,13 @@ class TvScreen(
         if (newlyFailed && mode != Mode.SETTINGS && mode != Mode.EXIT) setMode(Mode.PLAYBACK)
         else render()
         if (newlyFailed && mode == Mode.PLAYBACK) accept.requestFocus()
+    }
+
+    fun setFailureMessage(unitel: Boolean, reason: String? = null) {
+        view<TextView>(R.id.error_help).text = reason ?: activity.getString(
+            if (unitel) R.string.unitel_unavailable else R.string.channel_unavailable_help)
+        accept.setText(if (unitel) R.string.choose_channel else R.string.accept_change)
+        accept.setOnClickListener { if (unitel) showChannels() else onAcknowledge() }
     }
 
     fun setAvailability(checking: Boolean) {
@@ -213,7 +226,7 @@ class TvScreen(
     }
 
     private fun changeChannel(delta: Int) {
-        val next = tuning.adjacent(current?.id, delta) ?: return
+        val next = tuning.numbers.adjacent(current?.id, navigable, delta) ?: return
         if (next.id == current?.id) showOverlay() else onSelect(next)
     }
 
@@ -286,7 +299,10 @@ class TvScreen(
                         else channels.getOrNull(menuCursor)?.let(onSelect)
                         true
                     }
-                    mode == Mode.PLAYBACK && status == TvPlayer.Status.FAILED && current != null -> { onAcknowledge(); true }
+                    mode == Mode.PLAYBACK && status == TvPlayer.Status.FAILED && current != null -> {
+                        if (retry.hasFocus()) onRetry() else accept.performClick()
+                        true
+                    }
                     mode == Mode.PLAYBACK -> { showChannels(); true }
                     else -> false
                 }
