@@ -19,9 +19,10 @@ class ChannelCatalogueLimitTest {
 
     @Test fun duplicateSourcesDoNotCountAsAdditionalChannels() {
         val text = "#EXTM3U\n" + (1..1000).joinToString("") { number ->
-            "#EXTINF:-1 tvg-id=\"RedUno.bo@SD\",RED UNO\nhttps://example.com/$number.m3u8\n"
+            "#EXTINF:-1 tvg-id=\"RedUno.bo@SD\",RED UNO\nhttps://example.com/${number % 16}.m3u8\n"
         }
         assertEquals(1, M3uParser.parse(text).size)
+        assertEquals(16, M3uParser.parse(text).single().sources.size)
     }
 
     @Test fun oversizedRemoteCataloguePreservesThePreviousChannelsAndCache() {

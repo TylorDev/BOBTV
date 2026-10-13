@@ -10,10 +10,10 @@ import java.util.concurrent.atomic.AtomicReference
 class AvailabilityScannerTest {
     private fun tickets(count: Int) = (1..count).map { ProbeTicket(SourceKey(it.toString(), "https://example.com/" + it), 0) }
 
-    @Test fun probesUseAtMostTwoWorkersAndAllComplete() {
+    @Test fun probesUseOneWorkerAndAllComplete() {
         val running = AtomicInteger()
         val maxRunning = AtomicInteger()
-        val firstTwo = CountDownLatch(2)
+        val firstTwo = CountDownLatch(1)
         val release = CountDownLatch(1)
         val completed = CountDownLatch(1)
         val results = AtomicInteger()
@@ -33,11 +33,11 @@ class AvailabilityScannerTest {
         try {
             scanner.scan(tickets(5), { _, _ -> results.incrementAndGet() }, { completed.countDown() })
             assertTrue(firstTwo.await(2, TimeUnit.SECONDS))
-            assertEquals(2, maxRunning.get())
+            assertEquals(1, maxRunning.get())
             release.countDown()
             assertTrue(completed.await(2, TimeUnit.SECONDS))
             assertEquals(5, results.get())
-            assertTrue(maxRunning.get() <= 2)
+            assertEquals(1, maxRunning.get())
         } finally { release.countDown(); scanner.close() }
     }
 
@@ -100,6 +100,21 @@ class AvailabilityScannerTest {
             assertTrue(completed.await(2, TimeUnit.SECONDS))
             assertFalse(result.get().online)
             assertTrue(result.get().detail.contains("Cannot create"))
+        } finally { scanner.close() }
+    }
+    @Test fun veryLargeCatalogueDoesNotCreateAnUnboundedRound() {
+        val results = AtomicInteger()
+        val completed = CountDownLatch(1)
+        val scanner = AvailabilityScanner(createProbe = {
+            object : StreamProbe {
+                override fun check() = ProbeResult(true, "Live", 1)
+                override fun cancel() {}
+            }
+        })
+        try {
+            scanner.scan(tickets(1000), { _, _ -> results.incrementAndGet() }, { completed.countDown() })
+            assertTrue(completed.await(2, TimeUnit.SECONDS))
+            assertEquals(30, results.get())
         } finally { scanner.close() }
     }
 }

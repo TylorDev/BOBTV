@@ -2,6 +2,7 @@ package com.bobtv.helloworld.data
 
 import com.bobtv.helloworld.network.HttpPayload
 import com.bobtv.helloworld.network.ProbeTransport
+import com.bobtv.helloworld.network.HttpStatusException
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.IOException
@@ -118,5 +119,38 @@ class HlsSourceProbeTest {
         assertFalse(probe(transport, mapOf(
             root to HlsManifest.Master(listOf(HlsManifest.Variant("video.m3u8", "audio.m3u8"))),
             variant to media)).online)
+    }
+    @Test fun onlyManifestMissingIsConclusiveAndAccessDeniedRemainsInconclusive() {
+        for (code in listOf(404, 410, 403, 503)) {
+            val transport = object : ProbeTransport {
+                override fun fetch(url: String, maxBytes: Int, offset: Long, length: Long?, complete: Boolean): HttpPayload =
+                    throw HttpStatusException(code, url)
+                override fun checkDeadline() {}
+                override fun cancel() {}
+            }
+            val result = HlsSourceProbe(root, HlsManifestReader { _, _, _ -> media }, transport).check()
+            assertEquals(if (code == 404 || code == 410) ProbeVerdict.UNAVAILABLE else ProbeVerdict.INCONCLUSIVE, result.verdict)
+        }
+    }
+    @Test fun missingOldSegmentCanRecoverWithLatestSampleWithoutDeclaringOffline() {
+        val transport = Transport()
+        transport.responses[root] = HttpPayload(root, byteArrayOf())
+        transport.responses["https://example.com/segment.ts"] = HttpPayload("https://example.com/segment.ts", ts)
+        val manifest = HlsManifest.Media(listOf(HlsManifest.Segment(HlsManifest.Resource("old.ts"))) + media.segments, false)
+        val result = probe(transport, mapOf(root to manifest))
+        assertTrue(result.online)
+        assertEquals(2, transport.requests.count { it.first == root })
+    }
+    @Test fun checkingOnlyTwoOfManyVariantsCannotProveAllOffline() {
+        val transport = object : ProbeTransport {
+            override fun fetch(url: String, maxBytes: Int, offset: Long, length: Long?, complete: Boolean): HttpPayload =
+                if (url == root) HttpPayload(root, byteArrayOf()) else throw HttpStatusException(404, url)
+            override fun checkDeadline() {}
+            override fun cancel() {}
+        }
+        val result = HlsSourceProbe(root, HlsManifestReader { _, _, _ ->
+            HlsManifest.Master((1..3).map { HlsManifest.Variant("$it.m3u8") })
+        }, transport).check()
+        assertEquals(ProbeVerdict.INCONCLUSIVE, result.verdict)
     }
 }

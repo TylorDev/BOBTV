@@ -10,8 +10,8 @@ android {
         applicationId = "com.bobtv.helloworld"
         minSdk = 29
         targetSdk = 33
-        versionCode = 4
-        versionName = "2.1"
+        versionCode = 5
+        versionName = "2.2"
     }
 
     compileOptions {

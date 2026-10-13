@@ -11,6 +11,7 @@ enum class Availability { UNKNOWN, ONLINE, SUSPECT, OFFLINE_CONFIRMED }
 /** Main-thread evidence. A playback failure is never a negative availability verdict. */
 class AvailabilityState(private val now: () -> Long = { System.nanoTime() / 1_000_000 }) {
     private data class Health(var state: Availability = Availability.UNKNOWN, var verified: Boolean = false,
+                              var unstable: Boolean = false,
                               var positiveAt: Long = Long.MIN_VALUE, var negativeAt: Long? = null,
                               var revision: Long)
     private val sources = linkedMapOf<SourceKey, Health>()
@@ -71,6 +72,7 @@ class AvailabilityState(private val now: () -> Long = { System.nanoTime() / 1_00
             pending.remove(key)
         }
     }
+    fun recordStability(key: SourceKey, unstable: Boolean) { sources[key]?.unstable = unstable }
     private fun positive(health: Health) {
         health.state = Availability.ONLINE
         health.verified = true
@@ -90,8 +92,11 @@ class AvailabilityState(private val now: () -> Long = { System.nanoTime() / 1_00
     }
     fun label(channel: Channel): String = when {
         confirmedOffline(channel) -> "Sin señal confirmada"
-        onlineSources(channel).isNotEmpty() -> "Disponible"
-        channel.sources.any { sources[SourceKey(channel.id, it)]?.verified == true } -> "Señal intermitente · puedes reintentar"
+        onlineSources(channel).isNotEmpty() -> if (channel.sources.any { sources[SourceKey(channel.id, it)]?.unstable == true })
+            "Disponible · señal intermitente" else "Disponible"
+        channel.sources.any { sources[SourceKey(channel.id, it)]?.verified == true } ->
+            if (channel.sources.any { sources[SourceKey(channel.id, it)]?.unstable == true }) "Señal intermitente · puedes reintentar"
+            else "Disponibilidad sin confirmar · puedes reintentar"
         else -> "Señal sin confirmar"
     }
     fun isPending(channel: Channel) = channel.sources.any { SourceKey(channel.id, it) in pending }

@@ -127,7 +127,11 @@ class TvScreen(
     fun setPlaybackStatus(updated: TvPlayer.Status) {
         val newlyFailed = status != TvPlayer.Status.FAILED && updated == TvPlayer.Status.FAILED
         status = updated
-        loading.setText(if (updated == TvPlayer.Status.RETRYING) R.string.retrying_channel else R.string.loading_channel)
+        loading.setText(when (updated) {
+            TvPlayer.Status.RETRYING -> R.string.retrying_channel
+            TvPlayer.Status.WAITING_NETWORK -> R.string.waiting_network
+            else -> R.string.loading_channel
+        })
         if (newlyFailed && mode == Mode.SETTINGS) settingsReturn = Mode.PLAYBACK
         if (newlyFailed && mode != Mode.SETTINGS && mode != Mode.EXIT) setMode(Mode.PLAYBACK)
         else render()
@@ -320,7 +324,7 @@ class TvScreen(
         exit.visibility = visible(mode == Mode.EXIT)
         error.visibility = visible(mode == Mode.PLAYBACK && current != null && status == TvPlayer.Status.FAILED)
         loading.visibility = visible(mode == Mode.PLAYBACK &&
-            (current != null || checking) && (status == TvPlayer.Status.LOADING || status == TvPlayer.Status.RETRYING))
+            (current != null || checking) && (status == TvPlayer.Status.LOADING || status == TvPlayer.Status.RETRYING || status == TvPlayer.Status.WAITING_NETWORK))
         overlay.visibility = visible(mode == Mode.PLAYBACK && current != null && overlayVisible)
         scrim.visibility = visible(mode != Mode.PLAYBACK || status == TvPlayer.Status.FAILED)
         val notice = tuning.notice

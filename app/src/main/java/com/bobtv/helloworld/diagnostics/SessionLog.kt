@@ -10,7 +10,10 @@ object LogRedactor {
         val value = match.value
         runCatching {
             val uri = URI(value)
-            URI(uri.scheme, null, uri.host, uri.port, uri.path,
+            val safePath = uri.path.split('/').joinToString("/") { part ->
+                if (part.length >= 24 && part.matches(Regex("[A-Za-z0-9_=-]+"))) "REDACTED" else part
+            }.replace(Regex("(?i)(/live/|/movie/|/series/)[^/]+/[^/]+/"), "$1REDACTED/REDACTED/")
+            URI(uri.scheme, null, uri.host, uri.port, safePath,
                 if (uri.rawQuery == null) null else "REDACTED", null).toASCIIString()
         }.getOrElse {
             value.replace(Regex("""(https?://)[^/@\s]+@"""), "$1REDACTED@")

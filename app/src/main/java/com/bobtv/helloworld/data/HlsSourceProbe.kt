@@ -76,7 +76,7 @@ class HlsSourceProbe(
             }
             is HlsManifest.Media -> {
                 if (manifest.ended) throw Unavailable("Live playlist ended (#EXT-X-ENDLIST)")
-                val segment = manifest.segments.getOrNull(manifest.segments.size - 2)
+                val segment = (if (reload) manifest.segments.getOrNull(manifest.segments.size - 2) else manifest.segments.lastOrNull())
                     ?: manifest.segments.lastOrNull() ?: throw IOException("Live playlist has no media segments")
                 segment.keyUrl?.let {
                     val key = transport.fetch(resolve(response.url, it), 16)

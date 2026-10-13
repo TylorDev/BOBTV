@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">BOBTV</string>
     <string name="channels_title">Canales</string>
     <string name="remote_help">↑↓ Cambiar canal · 0–9 Canal · OK Canales · Menú Configuración</string>
@@ -8,7 +8,7 @@
     <string name="retrying_channel">Reconectando el canal…</string>
     <string name="channel_unavailable">Este canal no está disponible</string>
     <string name="channel_unavailable_help">No pudimos reproducir esta señal. Puedes reintentar o cambiar a otro canal disponible. El detalle está en los logs.</string>
-    <string name="unitel_unavailable">La señal de Unitel no está disponible en este momento. Puedes reintentar o elegir otro canal.</string>
+    <string name="unitel_unavailable" tools:ignore="Typos">La señal de Unitel no está disponible en este momento. Puedes reintentar o elegir otro canal.</string>
     <string name="retry_channel">Reintentar</string>
     <string name="choose_channel">Elegir otro canal</string>
     <string name="waiting_network">Sin conexión. Recuperaremos este canal al volver la red.</string>

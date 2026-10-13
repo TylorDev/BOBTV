@@ -111,4 +111,14 @@ class AvailabilityStateTest {
         repeat(5) { visited += state.beginScan(channels, "1", null).map { it.key } }
         assertEquals(100, visited.size)
     }
+    @Test fun localFailureDoesNotClaimSignalInstability() {
+        val state = AvailabilityState()
+        state.setCatalogue(catalogue)
+        val key = SourceKey(a.id, a.url)
+        state.recordPlayback(key, true)
+        state.recordPlayback(key, false)
+        assertFalse(state.label(a).contains("intermitente"))
+        state.recordStability(key, true)
+        assertTrue(state.label(a).contains("intermitente"))
+    }
 }

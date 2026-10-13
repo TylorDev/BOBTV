@@ -6,6 +6,7 @@ object M3uParser {
     private val attributes = Regex("""([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 
     fun parse(text: String): List<Channel> {
+        require(text.length <= MAX_BYTES && text.toByteArray(Charsets.UTF_8).size <= MAX_BYTES) { "Playlist exceeds 1 MiB" }
         val iterator = text.removePrefix("\uFEFF").lineSequence()
             .map(String::trim).filter(String::isNotEmpty).iterator()
         require(iterator.hasNext()) { "Empty playlist" }
@@ -14,6 +15,7 @@ object M3uParser {
         val channels = linkedMapOf<String, Channel>()
         var pending: Pending? = null
         for (line in iterator) {
+            require(line.length <= MAX_LINE_CHARS && line.toByteArray(Charsets.UTF_8).size <= MAX_LINE_CHARS) { "Playlist line exceeds 8 KiB" }
             when {
                 line.startsWith("#EXTINF:") -> pending = parseInfo(line)
                 line.startsWith("#") -> Unit
@@ -23,8 +25,12 @@ object M3uParser {
                     if (info != null && isWebUrl(line)) {
                         val id = info.id.ifBlank { line }
                         val existing = channels[id]
-                        if (existing == null) channels[id] = Channel(id, info.name, info.group, line)
+                        if (existing == null) {
+                            require(channels.size < ChannelNumbers.MAX_CHANNELS) { "Playlist exceeds 999 channels" }
+                            channels[id] = Channel(id, info.name, info.group, line)
+                        }
                         else if (id in OfficialChannels.ids && line !in existing.sources) {
+                            require(existing.sources.size < MAX_SOURCES_PER_CHANNEL) { "Channel exceeds 16 sources" }
                             channels[id] = existing.copy(sources = existing.sources + line)
                         }
                     }
@@ -33,6 +39,7 @@ object M3uParser {
         }
         require(channels.isNotEmpty()) { "Playlist has no valid channels" }
         require(channels.size <= ChannelNumbers.MAX_CHANNELS) { "Playlist exceeds ${ChannelNumbers.MAX_CHANNELS} channels" }
+        require(channels.values.sumOf { it.sources.size } <= MAX_SOURCES) { "Playlist exceeds 4096 sources" }
         return channels.values.toList()
     }
 
@@ -61,4 +68,8 @@ object M3uParser {
     }.getOrDefault(false)
 
     private data class Pending(val id: String, val name: String, val group: String)
+    const val MAX_BYTES = 1024 * 1024
+    const val MAX_LINE_CHARS = 8192
+    const val MAX_SOURCES_PER_CHANNEL = 16
+    const val MAX_SOURCES = 4096
 }

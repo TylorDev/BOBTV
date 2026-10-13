@@ -47,4 +47,12 @@ class SessionLogTest {
             assertEquals(100, log.eventCount())
         } finally { pool.shutdownNow() }
     }
+    @Test fun credentialsAndLongTokensInPathsAreRedacted() {
+        val value = LogRedactor.redact("https://example.com/live/myuser/mypassword/123.ts " +
+            "https://example.com/abcDEF1234567890abcDEF1234567890/index.m3u8")
+        assertFalse(value.contains("myuser"))
+        assertFalse(value.contains("mypassword"))
+        assertFalse(value.contains("abcDEF1234567890"))
+        assertTrue(value.contains("123.ts"))
+    }
 }
