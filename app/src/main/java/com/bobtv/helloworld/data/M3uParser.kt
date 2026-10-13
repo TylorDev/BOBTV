@@ -22,7 +22,11 @@ object M3uParser {
                     pending = null
                     if (info != null && isWebUrl(line)) {
                         val id = info.id.ifBlank { line }
-                        channels.putIfAbsent(id, Channel(id, info.name, info.group, line))
+                        val existing = channels[id]
+                        if (existing == null) channels[id] = Channel(id, info.name, info.group, line)
+                        else if (id in OfficialChannels.ids && line !in existing.sources) {
+                            channels[id] = existing.copy(sources = existing.sources + line)
+                        }
                     }
                 }
             }

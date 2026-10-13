@@ -16,16 +16,20 @@ class TvScreen(
     private val activity: Activity,
     private val onSelect: (Channel) -> Unit,
     private val onRefresh: () -> Unit,
-    private val onRetry: () -> Unit,
+    private val onAcknowledge: () -> Unit,
+    private val onExportLogs: () -> Unit,
     private val onExit: () -> Unit,
 ) {
-    private enum class Mode { PLAYBACK, CHANNELS, EXIT }
+    private enum class Mode { PLAYBACK, CHANNELS, SETTINGS, EXIT }
     private var mode = Mode.PLAYBACK
+    private var settingsReturn = Mode.PLAYBACK
     private var status = TvPlayer.Status.LOADING
     private var channels = emptyList<Channel>()
+    private var catalogue = emptyList<Channel>()
     private var current: Channel? = null
     private var menuCursor = 0
     private var overlayVisible = true
+    private var checking = true
     private val handledKeys = mutableSetOf<Int>()
     private val handler = Handler(Looper.getMainLooper())
     private val root = view<FrameLayout>(R.id.root)
@@ -33,24 +37,30 @@ class TvScreen(
     private val menu = view<View>(R.id.menu_panel)
     private val error = view<View>(R.id.error_panel)
     private val exit = view<View>(R.id.exit_panel)
+    private val settings = view<View>(R.id.settings_panel)
     private val loading = view<TextView>(R.id.loading)
     private val overlay = view<View>(R.id.channel_overlay)
     private val title = view<TextView>(R.id.channel_title)
     private val scrim = view<View>(R.id.scrim)
     private val list = view<ListView>(R.id.channel_list)
     private val refresh = view<Button>(R.id.refresh_channels)
+    private val openSettings = view<Button>(R.id.open_settings)
+    private val exportLogs = view<Button>(R.id.export_logs)
+    private val empty = view<TextView>(R.id.empty_channels)
     private val catalogueStatus = view<TextView>(R.id.catalogue_status)
-    private val retry = view<Button>(R.id.retry_channel)
+    private val accept = view<Button>(R.id.accept_change)
     private val adapter = ChannelAdapter(activity)
     private val hideOverlay = Runnable { overlayVisible = false; render() }
 
     init {
         list.adapter = adapter
-        list.setOnItemClickListener { _, _, position, _ -> channels.getOrNull(position)?.let(onSelect) }
+        list.emptyView = empty
+        list.setOnItemClickListener { _, _, position, _ -> menuCursor = position; channels.getOrNull(position)?.let(onSelect) }
         refresh.setOnClickListener { menuCursor = channels.size; onRefresh() }
-        retry.setOnClickListener { onRetry() }
-        view<Button>(R.id.choose_channel).setOnClickListener { showChannels() }
-        view<Button>(R.id.keep_watching).setOnClickListener { setMode(Mode.PLAYBACK) }
+        openSettings.setOnClickListener { menuCursor = channels.size + 1; showSettings() }
+        exportLogs.setOnClickListener { onExportLogs() }
+        accept.setOnClickListener { onAcknowledge() }
+        view<Button>(R.id.keep_watching).setOnClickListener { resumeView() }
         view<Button>(R.id.exit_app).setOnClickListener { onExit() }
         root.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
             val width = right - left
@@ -64,7 +74,7 @@ class TvScreen(
                 menu.layoutParams = (menu.layoutParams as FrameLayout.LayoutParams).apply {
                     this.width = (available * 0.60f).toInt()
                 }
-                for (panel in listOf(error, exit)) {
+                for (panel in listOf(error, exit, settings)) {
                     panel.layoutParams = (panel.layoutParams as FrameLayout.LayoutParams).apply {
                         this.width = minOf(available, dp(640))
                     }
@@ -74,12 +84,13 @@ class TvScreen(
         render()
     }
 
-    fun setCatalogue(updated: List<Channel>) {
+    fun setCatalogue(catalogue: List<Channel>, updated: List<Channel>) {
+        this.catalogue = catalogue
         val focusedId = channels.getOrNull(menuCursor)?.id
-        val wasRefresh = menuCursor == channels.size && mode == Mode.CHANNELS
+        val footerOffset = (menuCursor - channels.size).takeIf { it >= 0 }
         channels = updated
         adapter.channels = updated
-        menuCursor = if (wasRefresh) channels.size else
+        menuCursor = if (footerOffset != null) channels.size + footerOffset.coerceAtMost(1) else
             channels.indexOfFirst { it.id == focusedId }.takeIf { it >= 0 }
                 ?: channels.indexOfFirst { it.id == current?.id }.coerceAtLeast(0)
         updateTitle()
@@ -98,8 +109,24 @@ class TvScreen(
         val newlyFailed = status != TvPlayer.Status.FAILED && updated == TvPlayer.Status.FAILED
         status = updated
         loading.setText(if (updated == TvPlayer.Status.RETRYING) R.string.retrying_channel else R.string.loading_channel)
+        if (newlyFailed && mode == Mode.SETTINGS) settingsReturn = Mode.PLAYBACK
+        if (newlyFailed && mode != Mode.SETTINGS && mode != Mode.EXIT) setMode(Mode.PLAYBACK)
+        else render()
+        if (newlyFailed && mode == Mode.PLAYBACK) accept.requestFocus()
+    }
+
+    fun setAvailability(checking: Boolean) {
+        this.checking = checking
+        empty.setText(if (checking) R.string.checking_channels else R.string.no_online_channels)
+        if (current == null) loading.setText(R.string.checking_channels)
         render()
-        if (newlyFailed && mode == Mode.PLAYBACK) retry.requestFocus()
+    }
+
+    fun showEmptyChannels() {
+        current = null
+        status = TvPlayer.Status.FAILED
+        updateTitle()
+        showChannels()
     }
 
     fun setCatalogueStatus(text: String, refreshing: Boolean = false) {
@@ -108,8 +135,11 @@ class TvScreen(
     }
 
     private fun updateTitle() {
-        val displayed = channels.firstOrNull { it.id == current?.id } ?: current
+        val displayed = catalogue.firstOrNull { it.id == current?.id } ?: current
         title.text = displayed?.name.orEmpty()
+        view<TextView>(R.id.error_title).text = displayed?.let {
+            activity.getString(R.string.channel_unavailable_named, it.name)
+        } ?: activity.getString(R.string.channel_unavailable)
     }
 
     private fun showOverlay() {
@@ -125,14 +155,22 @@ class TvScreen(
         setMode(Mode.CHANNELS)
     }
 
+    private fun showSettings() {
+        if (mode == Mode.SETTINGS) return
+        settingsReturn = mode
+        handler.removeCallbacks(hideOverlay)
+        setMode(Mode.SETTINGS)
+    }
+
     private fun setMode(updated: Mode) {
         mode = updated
         render()
         when (updated) {
             Mode.CHANNELS -> focusMenuCursor()
             Mode.EXIT -> view<Button>(R.id.keep_watching).requestFocus()
+            Mode.SETTINGS -> exportLogs.requestFocus()
             Mode.PLAYBACK -> {
-                if (status == TvPlayer.Status.FAILED) retry.requestFocus() else root.requestFocus()
+                if (status == TvPlayer.Status.FAILED && current != null) accept.requestFocus() else root.requestFocus()
                 showOverlay()
             }
         }
@@ -140,7 +178,8 @@ class TvScreen(
 
     private fun focusMenuCursor() {
         adapter.highlightedPosition = if (menuCursor < channels.size) menuCursor else -1
-        if (menuCursor >= channels.size) refresh.requestFocus()
+        if (menuCursor == channels.size) refresh.requestFocus()
+        else if (menuCursor > channels.size) openSettings.requestFocus()
         else {
             list.requestFocus()
             list.setSelection(menuCursor)
@@ -148,7 +187,7 @@ class TvScreen(
     }
 
     private fun moveMenuCursor(delta: Int) {
-        menuCursor = (menuCursor + delta).coerceIn(0, channels.size)
+        menuCursor = (menuCursor + delta).coerceIn(0, channels.size + 1)
         focusMenuCursor()
     }
 
@@ -161,9 +200,17 @@ class TvScreen(
 
     fun requestBack() {
         when (mode) {
-            Mode.CHANNELS, Mode.EXIT -> setMode(Mode.PLAYBACK)
-            Mode.PLAYBACK -> setMode(Mode.EXIT)
+            Mode.CHANNELS -> if (current == null && status == TvPlayer.Status.FAILED) setMode(Mode.EXIT)
+                else setMode(Mode.PLAYBACK)
+            Mode.EXIT -> resumeView()
+            Mode.SETTINGS -> setMode(settingsReturn)
+            Mode.PLAYBACK -> if (status == TvPlayer.Status.FAILED && current != null) showChannels()
+                else setMode(Mode.EXIT)
         }
+    }
+
+    private fun resumeView() {
+        if (current == null && status == TvPlayer.Status.FAILED) showChannels() else setMode(Mode.PLAYBACK)
     }
 
     fun handleKeyEvent(event: KeyEvent): Boolean {
@@ -173,30 +220,36 @@ class TvScreen(
         if (key in handledKeys) return true
         val consumed = when (key) {
             KeyEvent.KEYCODE_BACK -> { requestBack(); true }
+            KeyEvent.KEYCODE_MENU -> {
+                if (mode == Mode.SETTINGS) requestBack() else showSettings()
+                true
+            }
             KeyEvent.KEYCODE_DPAD_UP -> when (mode) {
                 Mode.CHANNELS -> { moveMenuCursor(-1); true }
-                Mode.PLAYBACK -> { changeChannel(1); true }
-                Mode.EXIT -> false
+                Mode.PLAYBACK -> { if (status != TvPlayer.Status.FAILED) changeChannel(1); true }
+                Mode.EXIT, Mode.SETTINGS -> false
             }
             KeyEvent.KEYCODE_DPAD_DOWN -> when (mode) {
                 Mode.CHANNELS -> { moveMenuCursor(1); true }
-                Mode.PLAYBACK -> { changeChannel(-1); true }
-                Mode.EXIT -> false
+                Mode.PLAYBACK -> { if (status != TvPlayer.Status.FAILED) changeChannel(-1); true }
+                Mode.EXIT, Mode.SETTINGS -> false
             }
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_CHANNEL_DOWN -> {
                 if (mode == Mode.PLAYBACK) {
-                    changeChannel(if (key == KeyEvent.KEYCODE_CHANNEL_UP) 1 else -1)
+                    if (status != TvPlayer.Status.FAILED) changeChannel(if (key == KeyEvent.KEYCODE_CHANNEL_UP) 1 else -1)
                     true
                 } else false
             }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                 when {
                     mode == Mode.CHANNELS -> {
-                        if (menuCursor >= channels.size) onRefresh()
+                        if (menuCursor == channels.size) onRefresh()
+                        else if (menuCursor > channels.size) showSettings()
                         else channels.getOrNull(menuCursor)?.let(onSelect)
                         true
                     }
-                    mode == Mode.PLAYBACK && status != TvPlayer.Status.FAILED -> { showChannels(); true }
+                    mode == Mode.PLAYBACK && status == TvPlayer.Status.FAILED && current != null -> { onAcknowledge(); true }
+                    mode == Mode.PLAYBACK -> { showChannels(); true }
                     else -> false
                 }
             }
@@ -209,11 +262,12 @@ class TvScreen(
 
     private fun render() {
         menu.visibility = visible(mode == Mode.CHANNELS)
+        settings.visibility = visible(mode == Mode.SETTINGS)
         exit.visibility = visible(mode == Mode.EXIT)
-        error.visibility = visible(mode == Mode.PLAYBACK && status == TvPlayer.Status.FAILED)
+        error.visibility = visible(mode == Mode.PLAYBACK && current != null && status == TvPlayer.Status.FAILED)
         loading.visibility = visible(mode == Mode.PLAYBACK &&
-            (status == TvPlayer.Status.LOADING || status == TvPlayer.Status.RETRYING))
-        overlay.visibility = visible(mode == Mode.PLAYBACK && overlayVisible && status != TvPlayer.Status.FAILED)
+            (current != null || checking) && (status == TvPlayer.Status.LOADING || status == TvPlayer.Status.RETRYING))
+        overlay.visibility = visible(mode == Mode.PLAYBACK && current != null && overlayVisible && status != TvPlayer.Status.FAILED)
         scrim.visibility = visible(mode != Mode.PLAYBACK || status == TvPlayer.Status.FAILED)
         if (mode != Mode.CHANNELS) adapter.highlightedPosition = -1
     }

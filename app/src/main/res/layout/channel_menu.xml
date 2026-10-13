@@ -6,12 +6,19 @@
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="@string/channels_title" android:textColor="@color/text_primary"
         android:textSize="@dimen/channel_text_size" android:fontFamily="sans-serif-medium" android:layout_marginBottom="@dimen/space_small" />
-    <ListView android:id="@+id/channel_list" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+    <ListView android:id="@+id/channel_list" android:layout_width="match_parent" android:layout_height="match_parent"
         android:divider="@android:color/transparent" android:dividerHeight="@dimen/space_small"
         android:listSelector="@android:color/transparent" android:cacheColorHint="@android:color/transparent"
         android:drawSelectorOnTop="false" android:scrollbars="vertical" android:focusable="true" />
+    <TextView android:id="@+id/empty_channels" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:gravity="center" android:text="@string/checking_channels" android:textColor="@color/text_secondary"
+        android:textSize="@dimen/help_text_size" android:padding="@dimen/space_medium" />
+    </FrameLayout>
     <Button android:id="@+id/refresh_channels" style="@style/TVButton" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_small" android:text="@string/refresh_channels" />
+    <Button android:id="@+id/open_settings" style="@style/TVButton" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_small" android:text="@string/settings_title" />
     <TextView android:id="@+id/catalogue_status" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_small" android:textColor="@color/text_secondary" android:textSize="@dimen/help_text_size" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"

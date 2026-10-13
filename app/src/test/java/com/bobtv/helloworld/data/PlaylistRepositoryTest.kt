@@ -52,6 +52,6 @@ class PlaylistRepositoryTest {
         remote = "#EXTM3U\n#EXTINF:-1 tvg-id=\"dos\",Dos renombrado\nhttps://example.com/dos-new.m3u8\n"
         val updated = (repository.refresh() as PlaylistRepository.RefreshResult.Updated).channels
         assertEquals("Dos renombrado", updated.single().name)
-        assertEquals("dos", ChannelSelection.restore(updated, "uno").id)
+        assertEquals("dos", ChannelSelection.restore(updated, "uno")?.id)
     }
 }

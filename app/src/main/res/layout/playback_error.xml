@@ -2,22 +2,15 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/error_panel"
     android:layout_width="640dp" android:layout_height="wrap_content" android:layout_gravity="center"
     android:orientation="vertical" android:padding="@dimen/space_large" android:background="@drawable/panel_background" android:visibility="gone">
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+    <TextView android:id="@+id/error_title" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="@string/channel_unavailable" android:textSize="@dimen/channel_text_size"
         android:textColor="@color/text_primary" android:fontFamily="sans-serif-medium" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_medium" android:text="@string/channel_unavailable_help"
         android:textSize="@dimen/help_text_size" android:textColor="@color/text_secondary" />
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_large" android:orientation="horizontal">
-        <Button android:id="@+id/retry_channel" style="@style/TVButton" android:layout_width="0dp"
-            android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/retry"
-            android:nextFocusLeft="@id/choose_channel" android:nextFocusRight="@id/choose_channel" />
-        <Button android:id="@+id/choose_channel" style="@style/TVButton" android:layout_width="0dp"
-            android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="@dimen/space_medium"
-            android:nextFocusLeft="@id/retry_channel" android:nextFocusRight="@id/retry_channel" android:text="@string/choose_channel" />
-    </LinearLayout>
+    <Button android:id="@+id/accept_change" style="@style/TVButton" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_large" android:text="@string/accept_change" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_medium" android:text="@string/dialog_help"
+        android:layout_marginTop="@dimen/space_medium" android:text="@string/failure_help"
         android:textSize="@dimen/help_text_size" android:textColor="@color/text_secondary" />
 </LinearLayout>

@@ -2,28 +2,36 @@
 <resources>
     <string name="app_name">BOBTV</string>
     <string name="channels_title">Canales</string>
-    <string name="remote_help">↑↓ Cambiar canal · OK Canales</string>
+    <string name="remote_help">↑↓ Cambiar canal · OK Canales · Menú Configuración</string>
     <string name="list_help">↑↓ Elegir · OK Ver · Atrás Volver</string>
     <string name="loading_channel">Cargando canal…</string>
     <string name="retrying_channel">Reconectando el canal…</string>
     <string name="channel_unavailable">Este canal no está disponible</string>
-    <string name="channel_unavailable_help">Puedes reintentar o elegir otro canal.</string>
-    <string name="retry">Reintentar</string>
-    <string name="choose_channel">Elegir canal</string>
+    <string name="channel_unavailable_help">Ninguna fuente pudo reproducirse. Registramos el detalle en los logs. Al aceptar, cambiaremos al siguiente canal en línea.</string>
+    <string name="channel_unavailable_named">%1$s no está disponible</string>
+    <string name="accept_change">Aceptar y cambiar</string>
+    <string name="failure_help">OK Aceptar · Menú Configuración · Atrás Canales</string>
+    <string name="settings_title">Configuración</string>
+    <string name="export_logs">Exportar logs al portapapeles</string>
+    <string name="logs_description">Copia el diagnóstico de esta sesión: conexiones, fuentes y reproducción.</string>
+    <string name="settings_help">OK Exportar · Atrás Volver</string>
+    <string name="logs_copied">Logs copiados al portapapeles</string>
+    <string name="logs_copy_failed">No se pudieron copiar los logs</string>
+    <string name="checking_channels">Comprobando canales en línea…</string>
+    <string name="no_online_channels">No hay canales en línea.\nPuedes actualizar la lista o exportar los logs desde Configuración.</string>
+    <plurals name="probe_progress">
+        <item quantity="one">%1$d fuente pendiente</item>
+        <item quantity="other">%1$d fuentes pendientes</item>
+    </plurals>
+    <string name="saved_catalogue">Lista guardada</string>
+    <string name="initial_catalogue">Lista inicial</string>
+    <string name="updated_catalogue">Lista actualizada</string>
+    <plurals name="active_channels">
+        <item quantity="one">%1$d canal activo</item>
+        <item quantity="other">%1$d canales activos</item>
+    </plurals>
     <string name="refresh_channels">Actualizar canales</string>
     <string name="refreshing_channels">Buscando canales…</string>
-    <plurals name="catalogue_updated">
-        <item quantity="one">%1$d canal · Lista actualizada</item>
-        <item quantity="other">%1$d canales · Lista actualizada</item>
-    </plurals>
-    <plurals name="catalogue_cached">
-        <item quantity="one">%1$d canal · Lista guardada</item>
-        <item quantity="other">%1$d canales · Lista guardada</item>
-    </plurals>
-    <plurals name="catalogue_bundled">
-        <item quantity="one">%1$d canal · Lista inicial</item>
-        <item quantity="other">%1$d canales · Lista inicial</item>
-    </plurals>
     <string name="catalogue_kept">No se pudo actualizar. Conservamos tus canales.</string>
     <string name="exit_title">¿Salir de BOBTV?</string>
     <string name="keep_watching">Seguir viendo</string>

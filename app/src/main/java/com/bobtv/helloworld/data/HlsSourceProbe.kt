@@ -1,0 +1,105 @@
+package com.bobtv.helloworld.data
+
+import com.bobtv.helloworld.network.ProbeTransport
+import java.io.IOException
+import java.net.URI
+
+sealed class HlsManifest {
+    data class Variant(val url: String, val audioUrl: String? = null)
+    data class Resource(val url: String, val offset: Long = 0, val length: Long? = null)
+    data class Segment(val resource: Resource, val initialization: Resource? = null, val keyUrl: String? = null)
+    data class Master(val variants: List<Variant>, val parserContext: Any? = null) : HlsManifest()
+    data class Media(val segments: List<Segment>, val ended: Boolean) : HlsManifest()
+}
+
+fun interface HlsManifestReader {
+    fun parse(url: String, bytes: ByteArray, parent: HlsManifest.Master?): HlsManifest
+}
+
+interface StreamProbe {
+    fun check(): ProbeResult
+    fun cancel()
+}
+
+class HlsSourceProbe(
+    private val url: String,
+    private val reader: HlsManifestReader,
+    private val transport: ProbeTransport,
+    private val nanoTime: () -> Long = System::nanoTime,
+) : StreamProbe {
+    override fun check(): ProbeResult {
+        val start = nanoTime()
+        return try {
+            verify(url, emptySet(), null)
+            ProbeResult(true, "Live HLS playlist and media data available", (nanoTime() - start) / 1_000_000)
+        } catch (error: Exception) {
+            ProbeResult(false, error.message ?: error.javaClass.simpleName, (nanoTime() - start) / 1_000_000, error)
+        } finally {
+            transport.close()
+        }
+    }
+
+    private fun verify(url: String, visited: Set<String>, parent: HlsManifest.Master?) {
+        transport.checkDeadline()
+        check(url !in visited && visited.size < 4) { "Recursive or excessively nested HLS playlist" }
+        val response = transport.fetch(url, MAX_MANIFEST_BYTES)
+        val manifest = reader.parse(response.url, response.bytes, parent)
+        transport.checkDeadline()
+        when (manifest) {
+            is HlsManifest.Master -> {
+                check(manifest.variants.isNotEmpty()) { "Master playlist has no variants" }
+                var lastError: Exception? = null
+                for (variant in manifest.variants) {
+                    transport.checkDeadline()
+                    try {
+                        verify(resolve(response.url, variant.url), visited + url, manifest)
+                        variant.audioUrl?.let { verify(resolve(response.url, it), visited + url, manifest) }
+                        return
+                    } catch (error: Exception) {
+                        lastError = error
+                    }
+                }
+                throw lastError ?: IOException("No accessible HLS variants")
+            }
+            is HlsManifest.Media -> {
+                check(!manifest.ended) { "Live playlist ended (#EXT-X-ENDLIST)" }
+                val segment = manifest.segments.lastOrNull() ?: throw IOException("Live playlist has no media segments")
+                segment.keyUrl?.let {
+                    val key = transport.fetch(resolve(response.url, it), 16)
+                    check(key.bytes.size == 16) { "Invalid or inaccessible AES-128 key" }
+                }
+                segment.initialization?.let {
+                    check(hasMediaBytes(fetchResource(response.url, it))) { "Invalid initialization segment" }
+                }
+                val sample = fetchResource(response.url, segment.resource)
+                check(sample.isNotEmpty()) { "Empty media segment" }
+                if (segment.keyUrl == null) check(hasMediaBytes(sample)) { "Response is not HLS media data" }
+                else check(sample.size >= 16) { "Incomplete encrypted media segment" }
+            }
+        }
+    }
+
+    private fun fetchResource(base: String, resource: HlsManifest.Resource): ByteArray =
+        transport.fetch(resolve(base, resource.url), MAX_SAMPLE_BYTES, resource.offset, resource.length,
+            complete = false).bytes
+
+    private fun resolve(base: String, value: String): String = URI(base).resolve(value).toASCIIString()
+    override fun cancel() = transport.cancel()
+
+    companion object {
+        const val DEADLINE_MS = 10_000L
+        const val MAX_MANIFEST_BYTES = 1024 * 1024
+        const val MAX_SAMPLE_BYTES = 64 * 1024
+        fun hasMediaBytes(bytes: ByteArray): Boolean {
+            if (bytes.size < 8) return false
+            if (bytes[0] == 0x47.toByte()) return true // MPEG-TS
+            if (String(bytes, 0, 3, Charsets.US_ASCII) == "ID3") return true
+            val box = String(bytes, 4, 4, Charsets.US_ASCII)
+            if (box in setOf("ftyp", "styp", "moof", "emsg")) return true
+            val first = bytes[0].toInt() and 0xff
+            val second = bytes[1].toInt() and 0xff
+            return (first == 0xff && second and 0xe0 == 0xe0) ||
+                (first == 0x0b && second == 0x77)
+        }
+    }
+}

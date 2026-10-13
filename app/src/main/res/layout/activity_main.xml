@@ -21,6 +21,7 @@
             android:layout_gravity="center" android:padding="@dimen/space_large" android:background="@drawable/panel_background"
             android:text="@string/loading_channel" android:textColor="@color/text_primary" android:textSize="@dimen/channel_text_size" />
         <include layout="@layout/channel_menu" />
+        <include layout="@layout/settings_menu" />
         <include layout="@layout/playback_error" />
         <include layout="@layout/exit_confirmation" />
     </FrameLayout>
