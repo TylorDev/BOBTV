@@ -9,8 +9,11 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ListView
 import android.widget.TextView
+import android.widget.ProgressBar
 import com.bobtv.helloworld.controls.ChannelTuning
 import com.bobtv.helloworld.controls.RemoteDigits
+import com.bobtv.helloworld.controls.RemoteVolume
+import com.bobtv.helloworld.audio.VolumeController
 import com.bobtv.helloworld.data.Channel
 import com.bobtv.helloworld.data.ChannelNumbers
 import com.bobtv.helloworld.player.TvPlayer
@@ -24,6 +27,7 @@ class TvScreen(
     private val onExit: () -> Unit,
     private val onRetry: () -> Unit = {},
     private val onSaveLogs: () -> Unit = {},
+    private val onVolume: (VolumeController.Action) -> Unit = {},
 ) {
     private enum class Mode { PLAYBACK, CHANNELS, SETTINGS, EXIT }
     private var mode = Mode.PLAYBACK
@@ -47,6 +51,10 @@ class TvScreen(
     private val overlay = view<View>(R.id.channel_overlay)
     private val title = view<TextView>(R.id.channel_title)
     private val numberInput = view<TextView>(R.id.channel_input)
+    private val volumeNotice = view<View>(R.id.volume_notice)
+    private val volumeLabel = view<TextView>(R.id.volume_label)
+    private val volumeBar = view<ProgressBar>(R.id.volume_bar)
+    private val hideVolume = Runnable { volumeNotice.visibility = View.GONE }
     private val scrim = view<View>(R.id.scrim)
     private val list = view<ListView>(R.id.channel_list)
     private val refresh = view<Button>(R.id.refresh_channels)
@@ -258,6 +266,7 @@ class TvScreen(
 
     fun handleKeyEvent(event: KeyEvent): Boolean {
         val key = event.keyCode
+        if (RemoteVolume.handle(key, event.action, onVolume)) return true
         if (event.action == KeyEvent.ACTION_UP && handledKeys.remove(key)) return true
         if (event.action != KeyEvent.ACTION_DOWN) return false
         if (key in handledKeys) return true
@@ -271,7 +280,6 @@ class TvScreen(
         if (canTune) {
             when (key) {
                 KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
-                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
                 KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_CHANNEL_DOWN -> tuning.cancel()
             }
         }
@@ -283,13 +291,23 @@ class TvScreen(
             }
             KeyEvent.KEYCODE_DPAD_UP -> when (mode) {
                 Mode.CHANNELS -> { moveMenuCursor(-1); true }
-                Mode.PLAYBACK -> { if (status != TvPlayer.Status.FAILED) changeChannel(1); true }
-                Mode.EXIT, Mode.SETTINGS -> false
+                Mode.PLAYBACK -> {
+                    if (status == TvPlayer.Status.FAILED && current != null) retry.requestFocus()
+                    else if (status != TvPlayer.Status.FAILED) changeChannel(1)
+                    true
+                }
+                Mode.EXIT -> { view<Button>(R.id.keep_watching).requestFocus(); true }
+                Mode.SETTINGS -> { saveLogs.requestFocus(); true }
             }
             KeyEvent.KEYCODE_DPAD_DOWN -> when (mode) {
                 Mode.CHANNELS -> { moveMenuCursor(1); true }
-                Mode.PLAYBACK -> { if (status != TvPlayer.Status.FAILED) changeChannel(-1); true }
-                Mode.EXIT, Mode.SETTINGS -> false
+                Mode.PLAYBACK -> {
+                    if (status == TvPlayer.Status.FAILED && current != null) accept.requestFocus()
+                    else if (status != TvPlayer.Status.FAILED) changeChannel(-1)
+                    true
+                }
+                Mode.EXIT -> { view<Button>(R.id.exit_app).requestFocus(); true }
+                Mode.SETTINGS -> { exportLogs.requestFocus(); true }
             }
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_CHANNEL_DOWN -> {
                 if (mode == Mode.PLAYBACK) {
@@ -299,6 +317,14 @@ class TvScreen(
             }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                 when {
+                    mode == Mode.EXIT -> {
+                        if (view<Button>(R.id.exit_app).hasFocus()) onExit() else resumeView()
+                        true
+                    }
+                    mode == Mode.SETTINGS -> {
+                        if (exportLogs.hasFocus()) exportLogs.performClick() else saveLogs.performClick()
+                        true
+                    }
                     canTune && tuning.isPending -> { tuning.confirm(); true }
                     mode == Mode.CHANNELS -> {
                         if (menuCursor == channels.size) onRefresh()
@@ -314,11 +340,18 @@ class TvScreen(
                     else -> false
                 }
             }
-            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> mode == Mode.CHANNELS
             else -> false
         }
         if (consumed) handledKeys.add(key)
         return consumed
+    }
+
+    fun showVolume(level: Int) {
+        volumeLabel.text = activity.getString(if (level == 0) R.string.volume_muted else R.string.volume_level, level)
+        volumeBar.progress = level
+        volumeNotice.visibility = View.VISIBLE
+        handler.removeCallbacks(hideVolume)
+        handler.postDelayed(hideVolume, 3_000)
     }
 
     private fun render() {
@@ -347,6 +380,7 @@ class TvScreen(
         tuning.cancel()
         handler.removeCallbacksAndMessages(null)
         handledKeys.clear()
+        volumeNotice.visibility = View.GONE
     }
 
     private fun visible(value: Boolean) = if (value) View.VISIBLE else View.GONE

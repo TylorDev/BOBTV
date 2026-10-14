@@ -9,13 +9,13 @@
         android:layout_marginTop="@dimen/space_medium" android:text="@string/channel_unavailable_help"
         android:textSize="@dimen/help_text_size" android:textColor="@color/text_secondary" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="horizontal" android:layout_marginTop="@dimen/space_large">
-        <Button android:id="@+id/retry_channel" style="@style/TVButton" android:layout_width="0dp"
-            android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/retry_channel"
-            android:nextFocusRight="@id/accept_change" />
-        <Button android:id="@+id/accept_change" style="@style/TVButton" android:layout_width="0dp"
-            android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/accept_change"
-            android:nextFocusLeft="@id/retry_channel" />
+        android:orientation="vertical" android:layout_marginTop="@dimen/space_large">
+        <Button android:id="@+id/retry_channel" style="@style/TVButton" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/retry_channel"
+            android:nextFocusUp="@id/retry_channel" android:nextFocusDown="@id/accept_change" />
+        <Button android:id="@+id/accept_change" style="@style/TVButton" android:layout_width="match_parent"
+            android:layout_marginTop="@dimen/space_medium" android:layout_height="wrap_content" android:text="@string/accept_change"
+            android:nextFocusUp="@id/retry_channel" android:nextFocusDown="@id/accept_change" />
     </LinearLayout>
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_medium" android:text="@string/failure_help"

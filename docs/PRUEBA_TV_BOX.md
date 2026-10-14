@@ -1,4 +1,4 @@
-# Validación manual en el TV Box — BOBTV 2.2.1
+# Validación manual en el TV Box — BOBTV 2.3
 
 Esta guía no acredita pruebas ya realizadas. La reproducción de RED UNO confirmada por el usuario el 13 de octubre corresponde al historial anterior; las nuevas fuentes 1080p y el perfil 2.2 requieren comprobación física.
 
@@ -6,7 +6,7 @@ Equipo reportado: Allwinner H313/H616, cuatro Cortex-A53 hasta 1296 MHz, sistema
 
 ## Preparación y logs
 
-1. Transfiere **dist/BOBTV-2.2.1-Android10.apk** con AnyDesk e instala como actualización, sin desinstalar.
+1. Transfiere **dist/BOBTV-2.3-Android10.apk** con AnyDesk e instala como actualización, sin desinstalar.
 2. Abre BOBTV. No hace falta ADB ni depuración inalámbrica.
 3. Después de cada bloque usa **Menú → Guardar log TXT en Descargas** y envía el archivo `BOBTV-log-*.txt` de Descargas, indicando canal, duración, tipo de conexión, si hubo imagen/sonido y qué observaste. También puedes exportar al portapapeles.
 4. Exporta cada 10–15 minutos en sesiones largas: el historial está limitado a 2000 eventos/256 KiB. Los resúmenes conservan contadores acumulados.
@@ -29,7 +29,20 @@ Para cortar la red, usa el router o desactiva la conexión del TV Box manualment
 
 Comprueba que todos los canales aparecen desde el inicio, incluyendo Red Uno y Bolivisión, antes de terminar los probes y aun sin conexión. Deben poder intentarse por lista/número y mantener su estado real. Una señal visible sin comprobar no debe contarse como activa ni usarse para cambios automáticos. Unitel conserva su aviso personalizado. En Configuración, prueba ambos botones con ↑↓/OK: el TXT debe aparecer en Descargas, abrirse con acentos correctos y contener el diagnóstico. Repite el guardado y verifica archivos distintos; si el almacenamiento está lleno debe avisar del fallo sin dejar un archivo publicado incompleto.
 
-En avisos de fallo, izquierda/derecha y OK eligen Reintentar o Aceptar y cambiar; Unitel ofrece Elegir otro canal. Atrás abre la lista. Configuración y confirmación de salida deben conservar foco y bloquear entrada numérica. Volumen sigue siendo del sistema; este trabajo no implementa la escala 0–100.
+En avisos de fallo, arriba/abajo y OK eligen Reintentar o Aceptar y cambiar; Unitel ofrece Elegir otro canal. Atrás abre la lista. Los botones de salida son verticales y se abre con Seguir viendo seleccionado. Configuración y confirmación de salida deben conservar foco y bloquear entrada numérica. Las flechas horizontales siempre ajustan volumen.
+
+## Volumen preciso — comprobación audible pendiente
+
+Las pruebas de JVM y logs no acreditan la salida audible, HDMI/CEC ni el comportamiento real del firmware. Se asume que las teclas del mando llegan a Android. No hace falta cambiar opciones de depuración.
+
+1. Antes del primer inicio de 2.3, anota el volumen y silencio del dispositivo. Comprueba que el sonido inicial se aproxima al anterior y que un dispositivo silenciado sigue sin sonar. Revisa `Volume: Capture`, `Initial estimate`, `Applied mode` y cualquier `Limitation` en el TXT. El índice efectivo debe corresponder a la lectura real, incluso si el firmware limita el máximo.
+2. Prueba ←/→, Volumen −/+ y Silencio durante reproducción, carga/sin red, lista, Configuración, fallo y confirmación de salida. Cada pulsación o repetición debe cambiar un nivel; soltar no debe añadir otro ajuste. Comprueba extremos 0 y 100, subida desde 0 a 1 y recuperación del último nivel audible con Silencio. La barra dura tres segundos desde la última pulsación, no toma foco y no es interactiva.
+3. En reproducción y lista, escribe un número de dos dígitos y cambia volumen antes de los 1,5 segundos: los dígitos deben conservarse y confirmar con su temporizador original. En Configuración, salida y errores, el botón elegido debe seguir seleccionado tras cambiar volumen. Arriba/abajo y OK deben funcionar en los botones de salida y fallo.
+4. Escucha cambios progresivos, especialmente de 0 a 1, 10, 25, 50, 75 y 100, en AAC y las señales que usen MP2/AC3 si están disponibles. En modo app, los logs del reproductor deben indicar PCM, passthrough/offload/tunneling desactivados y ganancia previa a prepare/play. Si el códec no puede decodificarse localmente, registra el fallo y prueba la alternativa AAC.
+5. Pulsa Home mientras suena, verifica que cesa el audio y que el volumen/silencio del dispositivo vuelven a los anotados. Modifícalos fuera de BOBTV y vuelve: BOBTV debe recuperar su nivel guardado, capturar el nuevo estado externo y restaurarlo en la siguiente salida. Repite con BOBTV en 0 y con el dispositivo inicialmente silenciado, y cierra normalmente con Salir.
+6. Reabre BOBTV y comprueba nivel y último nivel audible. Prueba un cambio de canal, un reintento y una recreación del reproductor registrada: la ganancia debe mantenerse antes de sonar. Exporta TXT antes de salir y, tras volver, exporta el registro de la restauración anterior si la Activity sigue viva. Si Android recreó la Activity, sus logs previos pueden perderse.
+
+La restauración cubre salidas normales y Home; una terminación abrupta del proceso no garantiza callbacks de Android. Un dispositivo fijo, un rechazo de mute o un máximo limitado se conserva como limitación explícita en logs; la atenuación de BOBTV no controla el volumen físico del televisor por infrarrojos ni garantiza soporte CEC.
 
 Si el catálogo cambia de orden mientras escribes, la entrada se cancela. Ocultar canales no cambia números. Si desaparece el canal actual, puede seguir viéndose con el rótulo Fuera de la lista. Una actualización o un probe no debe cortar una emisión estable.
 

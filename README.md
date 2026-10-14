@@ -1,10 +1,10 @@
 # BOBTV
 
-App IPTV nativa en Kotlin y XML para Android 10 o posterior, manejada con el mando del TV Box. BOBTV **2.2.1**, código **6**, conserva `com.bobtv.helloworld` y el certificado de las versiones anteriores.
+App IPTV nativa en Kotlin y XML para Android 10 o posterior, manejada con el mando del TV Box. BOBTV **2.3**, código **7**, conserva `com.bobtv.helloworld` y el certificado de las versiones anteriores.
 
 ## Instalar como actualización
 
-Entrega: **dist/BOBTV-2.2.1-Android10.apk**, con archivo SHA-256. Transfiérela por AnyDesk, ábrela en el gestor de archivos e instala como actualización. No hace falta ADB. Se conservan las entregas anteriores; Android normalmente impide instalar un código inferior sobre uno superior. Consulta [validación de la corrección](docs/VALIDACION_2.2.1.md).
+Entrega: **dist/BOBTV-2.3-Android10.apk**, con archivo SHA-256. Transfiérela por AnyDesk, ábrela en el gestor de archivos e instala como actualización. No hace falta ADB. Se conservan las entregas anteriores; Android normalmente impide instalar un código inferior sobre uno superior. Consulta [volumen y validación de 2.3](docs/VOLUMEN_2.3.md).
 
 ## Mando y configuración
 
@@ -15,11 +15,17 @@ Entrega: **dist/BOBTV-2.2.1-Android10.apk**, con archivo SHA-256. Transfiérela 
 | OK | Confirmar número o abrir lista | Confirmar número o selección |
 | Atrás | Cancelar número o confirmar salida | Cancelar número o cerrar lista |
 | Menú | Configuración | Configuración |
-| Volumen | Volumen del sistema | Volumen del sistema |
+| ← / Volumen − | Bajar un nivel de BOBTV | Bajar un nivel de BOBTV |
+| → / Volumen + | Subir un nivel de BOBTV | Subir un nivel de BOBTV |
+| Silencio | Alternar 0 / último nivel audible | Alternar 0 / último nivel audible |
 
 Se admiten 1–999, ceros iniciales y confirmación tras 1,5 segundos, con OK o al tercer dígito. Todos los canales del catálogo están visibles y se pueden elegir por número; reordenar el M3U cambia los números. Se recuerda el canal por ID. La entrada numérica está desactivada en Configuración y salida. [Guía de numeración](docs/NUMERACION_CANALES.md).
 
-Configuración incluye **Guardar log TXT en Descargas** y conserva **Exportar logs al portapapeles**. El archivo `BOBTV-log-AAAA-MM-DD_HH-mm-ss-SSS.txt` contiene el diagnóstico de la sesión en UTF-8, con datos sensibles redactados. Se guarda en la carpeta pública Descargas mediante MediaStore, sin permisos de almacenamiento, y se confirma con un aviso. Si falla la escritura, se intenta eliminar la entrada incompleta. Atrás devuelve el foco a la pantalla anterior. El aviso del canal dura cinco segundos. Los fallos ofrecen **Reintentar** y **Aceptar y cambiar**; izquierda/derecha y OK eligen la acción. Atrás abre la lista. No se cambia a otro canal automáticamente por un error.
+Configuración incluye **Guardar log TXT en Descargas** y conserva **Exportar logs al portapapeles**. El archivo `BOBTV-log-AAAA-MM-DD_HH-mm-ss-SSS.txt` contiene el diagnóstico de la sesión en UTF-8, con datos sensibles redactados. Se guarda en la carpeta pública Descargas mediante MediaStore, sin permisos de almacenamiento, y se confirma con un aviso. Si falla la escritura, se intenta eliminar la entrada incompleta. Atrás devuelve el foco a la pantalla anterior. El aviso del canal dura cinco segundos. Los fallos ofrecen **Reintentar** y **Aceptar y cambiar** en vertical; arriba/abajo y OK eligen la acción. La confirmación de salida también usa arriba/abajo y abre con **Seguir viendo** seleccionado. Atrás abre la lista desde un error. No se cambia a otro canal automáticamente por un error.
+
+El volumen tiene 100 incrementos: **0 es silencio y 100 es el máximo disponible**. Las flechas horizontales, Volumen ± y Silencio funcionan también durante carga, lista, Configuración, errores y confirmación de salida. Cada evento de repetición cambia un nivel; la liberación se consume. Subir desde 0 establece 1. El ajuste conserva el foco y la entrada numérica pendiente, y muestra una barra informativa abajo a la derecha dentro del margen seguro durante tres segundos desde la última pulsación. Configuración no incorpora un control interactivo de volumen.
+
+BOBTV usa índices del dispositivo cuando empiezan en 0, permiten al menos 100 incrementos distintos y aceptan los cambios. En el resto de equipos intenta el máximo del dispositivo, comprueba el nivel permitido y atenúa su audio PCM con `(nivel / 100)²`. Conserva nivel y último nivel audible. El primer arranque aproxima el sonido previo con dB o proporción de índices y respeta el silencio inicial. Home y salida detienen la reproducción y restauran volumen y silencio del dispositivo; al volver se captura nuevamente ese estado. Las limitaciones del firmware se registran. La precisión audible y los códecs PCM siguen pendientes de prueba en el TV box físico.
 
 ## Disponibilidad y Unitel
 
@@ -75,4 +81,4 @@ Desde PowerShell:
     $signingStore = Join-Path $env:USERPROFILE '.android/debug.keystore'
     .\gradlew.bat --no-daemon "-Pandroid.injected.signing.store.file=$signingStore" "-Pandroid.injected.signing.store.password=android" "-Pandroid.injected.signing.key.alias=androiddebugkey" "-Pandroid.injected.signing.key.password=android" :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 
-Los informes quedan en app/build/reports. Los resultados de 2.2.1 se documentan en [validación](docs/VALIDACION_2.2.1.md). No se hacen verificaciones visuales automatizadas. Las metas de PSS, mando, frames y continuidad requieren los logs de las pruebas manuales en el TV Box.
+Los informes quedan en app/build/reports. Los resultados de 2.3 se documentan en [volumen y validación](docs/VOLUMEN_2.3.md). Las pruebas de foco, teclas y ciclo de vida se ejecutan con Robolectric en JVM y se comprueban mediante assertions/logs, sin capturas ni emulador. No se hacen verificaciones visuales automatizadas. Las metas de PSS, mando, frames, continuidad y volumen audible requieren las pruebas manuales en el TV Box.

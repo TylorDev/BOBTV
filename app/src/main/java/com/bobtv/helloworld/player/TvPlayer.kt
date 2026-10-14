@@ -10,6 +10,8 @@ import androidx.media3.common.util.ExperimentalApi
 import androidx.media3.datasource.*
 import androidx.media3.exoplayer.*
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.hls.HlsManifest
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.*
@@ -36,6 +38,7 @@ class TvPlayer(private val context: Context, private val view: PlayerView, priva
     private val localRecoveries = mutableSetOf<SourceKey>()
     private val excludedCodecs = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private var player: ExoPlayer? = null
+    private var volumeGain = 0f
     private var trackSelector: DefaultTrackSelector? = null
     private var listener: Player.Listener? = null
     private var channel: Channel? = null
@@ -106,6 +109,12 @@ class TvPlayer(private val context: Context, private val view: PlayerView, priva
     private val cooldown = Runnable {
         if (active && networkUsable && !resourceSuspended && status == Status.FAILED && recovery.canAutoRecover())
             retry(manual = false)
+    }
+    fun setVolume(gain: Float) {
+        require(gain.isFinite())
+        volumeGain = gain.coerceIn(0f, 1f)
+        player?.volume = volumeGain
+        log.info("Volume.Player", "Stored/applied gain=$volumeGain playerCreated=${player != null}")
     }
     fun play(channel: Channel, preferredSource: String?, manual: Boolean = true) {
         epoch.replace()
@@ -209,7 +218,12 @@ class TvPlayer(private val context: Context, private val view: PlayerView, priva
                     runtime.totalMemory() - runtime.freeMemory() >= runtime.maxMemory() * 9 / 10
             }
         }
-        val renderers = DefaultRenderersFactory(context).setEnableDecoderFallback(true)
+        val renderers = object : DefaultRenderersFactory(context) {
+            override fun buildAudioSink(context: Context, enableFloatOutput: Boolean,
+                                        enableAudioOutputPlaybackParams: Boolean): AudioSink =
+                PcmAudioSink(DefaultAudioSink.Builder(context).setEnableFloatOutput(false)
+                    .setEnableAudioOutputPlaybackParameters(false).build())
+        }.setEnableDecoderFallback(true)
             .experimentalSetEnableMediaCodecVideoRendererPrewarming(false)
             .setMediaCodecSelector { mime, secure, tunneling ->
                 val at = now()
@@ -221,18 +235,23 @@ class TvPlayer(private val context: Context, private val view: PlayerView, priva
         val tracks = DefaultTrackSelector(context).apply {
             val low = (resources?.level ?: ResourceLevel.NORMAL) >= ResourceLevel.CRITICAL
             setParameters(buildUponParameters().setMaxVideoSize(if (low) 854 else 1280, if (low) 480 else 720).setMaxVideoFrameRate(30)
+                .setTunnelingEnabled(false)
+                .setAudioOffloadPreferences(TrackSelectionParameters.AudioOffloadPreferences.Builder()
+                    .setAudioOffloadMode(TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED).build())
                 .setExceedVideoConstraintsIfNecessary(true))
         }
         trackSelector = tracks
         player = ExoPlayer.Builder(context, renderers).setTrackSelector(tracks)
             .setMediaSourceFactory(DefaultMediaSourceFactory(guarded).setLoadErrorHandlingPolicy(BoundedLoadErrorPolicy()))
             .setLoadControl(loadControl).setLivePlaybackSpeedControl(liveControl).build().apply {
+                volume = volumeGain
                 setAudioAttributes(AudioAttributes.DEFAULT, true)
                 setHandleAudioBecomingNoisy(true)
                 addAnalyticsListener(analytics)
             }
         view.player = player
-        log.info(TAG, "Single player created; SurfaceView; prefer 720p/30 with higher-quality fallback")
+        log.info(TAG, "Single player created; SurfaceView; prefer 720p/30 with higher-quality fallback; " +
+            "audio=PCM passthrough=false offload=false tunneling=false gain=$volumeGain before prepare/play")
     }
     private fun prepareSource(attempt: SourceFallback.Attempt, manual: Boolean = false, reconnect: Boolean = false) {
         if (!active || resourceSuspended) return
@@ -240,6 +259,7 @@ class TvPlayer(private val context: Context, private val view: PlayerView, priva
         if (!recovery.permitPreparation(reconnect, manual)) { exhausted("Preparation quota/cycle exhausted"); return }
         val selected = channel ?: return
         val currentPlayer = player ?: return
+        currentPlayer.volume = volumeGain
         detachListener()
         epoch.nextAttempt()
         val token = attemptToken

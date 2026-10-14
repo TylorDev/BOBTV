@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentValues
+import android.media.AudioManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -26,6 +27,9 @@ import com.bobtv.helloworld.network.NetworkState
 import com.bobtv.helloworld.player.FailureCategory
 import com.bobtv.helloworld.network.BoundedHttpSession
 import com.bobtv.helloworld.player.TvPlayer
+import com.bobtv.helloworld.audio.AndroidDeviceAudio
+import com.bobtv.helloworld.audio.StoredVolumePreferences
+import com.bobtv.helloworld.audio.VolumeController
 import java.io.File
 import java.io.IOException
 import java.time.LocalDateTime
@@ -43,6 +47,7 @@ class MainActivity : Activity() {
     private lateinit var scanner: AvailabilityScanner
     private lateinit var screen: TvScreen
     private lateinit var tvPlayer: TvPlayer
+    private lateinit var volume: VolumeController
     private lateinit var log: SessionLog
     private lateinit var resourceMonitor: ResourceMonitor
     private lateinit var network: NetworkMonitor
@@ -102,8 +107,10 @@ class MainActivity : Activity() {
                 }))
         })
         screen = TvScreen(this, ::selectChannel, { refreshCatalogue(manual = true) }, ::acknowledgeFailure,
-            ::exportLogs, ::finish, ::retryCurrentChannel, ::saveLogsToDownloads)
+            ::exportLogs, ::finish, ::retryCurrentChannel, ::saveLogsToDownloads, ::adjustVolume)
         tvPlayer = TvPlayer(this, findViewById(R.id.player_view), log, ::onPlaybackEvent)
+        volume = VolumeController(AndroidDeviceAudio(getSystemService(AudioManager::class.java)) { log.info("Volume.Device", it) },
+            StoredVolumePreferences(preferences), tvPlayer::setVolume) { log.info("Volume", it) }
         resourceMonitor = ResourceMonitor(this, log, tvPlayer::onResources)
         network = NetworkMonitor(this, ::onNetworkChanged)
         hideSystemBars()
@@ -112,6 +119,7 @@ class MainActivity : Activity() {
     override fun onStart() {
         super.onStart()
         started = true
+        volume.start()
         preferredId = currentChannel?.id ?: preferences.getString("last_channel", null)
         autoStartPending = currentChannel == null
         if (autoStartPending) screen.setPlaybackStatus(TvPlayer.Status.LOADING)
@@ -435,6 +443,10 @@ class MainActivity : Activity() {
         }
         return result
     }
+    private fun adjustVolume(action: VolumeController.Action) {
+        if (!started) return
+        screen.showVolume(volume.adjust(action))
+    }
     private fun summarizeRemote() {
         if (remoteDelays.isEmpty()) return
         val sorted = remoteDelays.sorted()
@@ -472,6 +484,7 @@ class MainActivity : Activity() {
         scanning = false
         playingSource = null
         tvPlayer.release()
+        volume.stop()
         network.stop()
         resourceMonitor.stop()
         screen.stop()
