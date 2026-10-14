@@ -37,4 +37,13 @@ La prueba física del TV Box queda pendiente. Para realizarla con el siguiente p
 5. Prueba la ruta automática: deja descargar el siguiente parche, sal con Home y vuelve a BOBTV. Debe instalar antes de reproducir, con confirmación si el firmware la exige.
 6. Interrumpe red durante una descarga y verifica que la versión anterior sigue disponible y que una nueva búsqueda recupera el parche. No hacen falta ADB, emulador ni capturas.
 
-Validación local: `:app:testDebugUnitTest`, `:app:lintDebug`, `:app:lintRelease` y `:app:assembleRelease` completados correctamente; **190 pruebas, cero fallos, errores u omisiones**. Lint: **cero errores, ocho avisos** (compatibilidad conservada, herramientas, recursos existentes y cálculo conservador del espacio). `tools/release.py package` verifica firma, versión, SDK, modo release, notas dentro del APK y SHA-256 antes de preparar la entrega. Los resultados de GitHub se incorporan tras publicar. Las pruebas JVM no certifican el instalador ni el firmware del dispositivo físico.
+Validación local: `:app:testDebugUnitTest`, `:app:lintDebug`, `:app:lintRelease` y `:app:assembleRelease` completados correctamente; **190 pruebas, cero fallos, errores u omisiones**. Lint: **cero errores, ocho avisos** (compatibilidad conservada, herramientas, recursos existentes y cálculo conservador del espacio). `tools/release.py package` verifica firma, versión, SDK, modo release, notas dentro del APK y SHA-256 antes de preparar la entrega. Las pruebas JVM no certifican el instalador ni el firmware del dispositivo físico.
+
+## Entrega publicada
+
+- [Release v2.4, APK y notas](https://github.com/TylorDev/BOBTV/releases/tag/v2.4), publicada mediante [Actions](https://github.com/TylorDev/BOBTV/actions/runs/38507061248). Verificación y publicación finalizadas correctamente, incluida la eliminación del keystore temporal.
+- APK `BOBTV-2.4-Android10.apk`: **12.835.603 bytes**, release no debuggable, versión 2.4/código 8 y certificado anterior comprobado mediante apksigner tras descargarlo de GitHub.
+- SHA-256 publicado: `12bca12572271d7f6d36d013815830d145a40d8968e1ccb0918cdae78de90851`.
+- `dist/` contiene exactamente los tres archivos publicados: APK, SHA-256 y `update.json`. Las entregas anteriores se conservan.
+- Comprobado sin autenticación el endpoint `releases/latest/download/update.json`: coincide con el manifiesto descargado, el tamaño y hash del APK, y las notas dentro del ZIP coinciden con `releases/2.4.md`.
+- La comprobación de `main` también pasó en [Actions](https://github.com/TylorDev/BOBTV/actions/runs/38507058399). Se corrigió la localización de sdkmanager en el runner antes de publicar la primera release; la etiqueta publicada referencia esa corrección.
