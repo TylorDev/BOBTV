@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentValues
+import android.content.Intent
 import android.media.AudioManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -30,6 +31,8 @@ import com.bobtv.helloworld.player.TvPlayer
 import com.bobtv.helloworld.audio.AndroidDeviceAudio
 import com.bobtv.helloworld.audio.StoredVolumePreferences
 import com.bobtv.helloworld.audio.VolumeController
+import com.bobtv.helloworld.updates.UpdateCoordinator
+import com.bobtv.helloworld.updates.UpdateServices
 import java.io.File
 import java.io.IOException
 import java.time.LocalDateTime
@@ -48,6 +51,8 @@ class MainActivity : Activity() {
     private lateinit var screen: TvScreen
     private lateinit var tvPlayer: TvPlayer
     private lateinit var volume: VolumeController
+    private lateinit var updates: UpdateCoordinator
+    private var lastUpdateMessage = ""
     private lateinit var log: SessionLog
     private lateinit var resourceMonitor: ResourceMonitor
     private lateinit var network: NetworkMonitor
@@ -107,17 +112,32 @@ class MainActivity : Activity() {
                 }))
         })
         screen = TvScreen(this, ::selectChannel, { refreshCatalogue(manual = true) }, ::acknowledgeFailure,
-            ::exportLogs, ::finish, ::retryCurrentChannel, ::saveLogsToDownloads, ::adjustVolume)
+            ::exportLogs, ::finish, ::retryCurrentChannel, ::saveLogsToDownloads, ::adjustVolume,
+            { updates.checkNow() })
         tvPlayer = TvPlayer(this, findViewById(R.id.player_view), log, ::onPlaybackEvent)
         volume = VolumeController(AndroidDeviceAudio(getSystemService(AudioManager::class.java)) { log.info("Volume.Device", it) },
             StoredVolumePreferences(preferences), tvPlayer::setVolume) { log.info("Volume", it) }
         resourceMonitor = ResourceMonitor(this, log, tvPlayer::onResources)
         network = NetworkMonitor(this, ::onNetworkChanged)
+        updates = UpdateCoordinator(this, UpdateServices.get(this), { status ->
+            screen.setUpdateStatus(status)
+            if (status.message != lastUpdateMessage) {
+                lastUpdateMessage = status.message
+                log.info("Update.Status", "${status.phase} · ${status.message}")
+            }
+        },
+            ::stopPlayback, ::startPlayback) { log.info("Update", it) }
+        updates.restoreState(savedInstanceState)
         hideSystemBars()
     }
 
     override fun onStart() {
         super.onStart()
+        if (!updates.start()) startPlayback()
+    }
+
+    private fun startPlayback() {
+        if (started || destroyed) return
         started = true
         volume.start()
         preferredId = currentChannel?.id ?: preferences.getString("last_channel", null)
@@ -469,7 +489,7 @@ class MainActivity : Activity() {
             View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
     }
 
-    override fun onStop() {
+    private fun stopPlayback() {
         started = false
         ioGeneration++
         scanGeneration++
@@ -490,11 +510,26 @@ class MainActivity : Activity() {
         screen.stop()
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         log.info("Main", "Background: playback and checks stopped")
+    }
+
+    override fun onResume() { super.onResume(); updates.resume() }
+    override fun onPause() { updates.pause(); super.onPause() }
+    override fun onSaveInstanceState(outState: Bundle) { updates.saveState(outState); super.onSaveInstanceState(outState) }
+
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (!updates.activityResult(requestCode, resultCode)) super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    override fun onStop() {
+        updates.stop()
+        stopPlayback()
         super.onStop()
     }
 
     override fun onDestroy() {
         destroyed = true
+        updates.close()
         handler.removeCallbacksAndMessages(null)
         scanner.close()
         io.shutdownNow()

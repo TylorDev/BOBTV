@@ -10,15 +10,34 @@ import com.bobtv.helloworld.audio.VolumeState
 import com.bobtv.helloworld.diagnostics.SessionLog
 import com.bobtv.helloworld.player.TvPlayer
 import org.junit.Assert.*
+import org.junit.Before
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import com.bobtv.helloworld.updates.*
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class MainActivityVolumeLifecycleTest {
+    @Before fun isolateUpdateNetwork() {
+        val context = RuntimeEnvironment.getApplication()
+        androidx.work.testing.WorkManagerTestInitHelper.initializeTestWorkManager(context,
+            androidx.work.Configuration.Builder().setExecutor(androidx.work.testing.SynchronousExecutor()).build())
+        val transport = object : UpdateTransport {
+            override fun manifest(cancelled: () -> Boolean): String = throw UpdateHttpException(404)
+            override fun download(manifest: UpdateManifest, destination: File, cancelled: () -> Boolean, progress: (Int) -> Unit) = Unit
+        }
+        UpdateServices.setForTests(UpdateRepository(context, transport = transport))
+    }
+    @After fun resetUpdates() {
+        androidx.work.WorkManager.getInstance(RuntimeEnvironment.getApplication()).cancelAllWork().result.get()
+        UpdateServices.setForTests(null)
+    }
     private fun field(activity: MainActivity, name: String): Any = requireNotNull(MainActivity::class.java.getDeclaredField(name)
         .apply { isAccessible = true }.get(activity))
 

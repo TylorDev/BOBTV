@@ -8,3 +8,8 @@ local.properties
 *.iml
 *.log
 dist/
+*.keystore
+*.jks
+*.p12
+signing.properties
+__pycache__/

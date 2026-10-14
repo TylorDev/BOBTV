@@ -10,6 +10,10 @@ import android.widget.FrameLayout
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.ProgressBar
+import android.widget.ScrollView
+import com.bobtv.helloworld.updates.UpdateStatus
+import com.bobtv.helloworld.updates.UpdatePhase
+import com.bobtv.helloworld.updates.readBounded
 import com.bobtv.helloworld.controls.ChannelTuning
 import com.bobtv.helloworld.controls.RemoteDigits
 import com.bobtv.helloworld.controls.RemoteVolume
@@ -28,8 +32,9 @@ class TvScreen(
     private val onRetry: () -> Unit = {},
     private val onSaveLogs: () -> Unit = {},
     private val onVolume: (VolumeController.Action) -> Unit = {},
+    private val onCheckUpdates: () -> Unit = {},
 ) {
-    private enum class Mode { PLAYBACK, CHANNELS, SETTINGS, EXIT }
+    private enum class Mode { PLAYBACK, CHANNELS, SETTINGS, NOTES, EXIT }
     private var mode = Mode.PLAYBACK
     private var settingsReturn = Mode.PLAYBACK
     private var status = TvPlayer.Status.LOADING
@@ -47,6 +52,8 @@ class TvScreen(
     private val error = view<View>(R.id.error_panel)
     private val exit = view<View>(R.id.exit_panel)
     private val settings = view<View>(R.id.settings_panel)
+    private val notes = view<View>(R.id.notes_panel)
+    private val notesScroll = view<ScrollView>(R.id.notes_scroll)
     private val loading = view<TextView>(R.id.loading)
     private val overlay = view<View>(R.id.channel_overlay)
     private val title = view<TextView>(R.id.channel_title)
@@ -61,6 +68,11 @@ class TvScreen(
     private val openSettings = view<Button>(R.id.open_settings)
     private val exportLogs = view<Button>(R.id.export_logs)
     private val saveLogs = view<Button>(R.id.save_logs)
+    private val versionNotes = view<Button>(R.id.version_notes)
+    private val checkUpdates = view<Button>(R.id.check_updates)
+    private val settingsButtons get() = listOf(saveLogs, exportLogs, versionNotes, checkUpdates)
+    @Suppress("DEPRECATION")
+    private val version = activity.packageManager.getPackageInfo(activity.packageName, 0).versionName.orEmpty()
     private val empty = view<TextView>(R.id.empty_channels)
     private val catalogueStatus = view<TextView>(R.id.catalogue_status)
     private val accept = view<Button>(R.id.accept_change)
@@ -82,6 +94,10 @@ class TvScreen(
         openSettings.setOnClickListener { menuCursor = channels.size + 1; showSettings() }
         exportLogs.setOnClickListener { onExportLogs() }
         saveLogs.setOnClickListener { onSaveLogs() }
+        versionNotes.text = activity.getString(R.string.version_notes, version)
+        versionNotes.setOnClickListener { showNotes() }
+        checkUpdates.setOnClickListener { onCheckUpdates() }
+        view<Button>(R.id.close_notes).setOnClickListener { closeNotes() }
         accept.setOnClickListener { onAcknowledge() }
         retry.setOnClickListener { onRetry() }
         view<Button>(R.id.keep_watching).setOnClickListener { resumeView() }
@@ -98,9 +114,10 @@ class TvScreen(
                 menu.layoutParams = (menu.layoutParams as FrameLayout.LayoutParams).apply {
                     this.width = (available * 0.60f).toInt()
                 }
-                for (panel in listOf(error, exit, settings)) {
+                for (panel in listOf(error, exit, settings, notes)) {
                     panel.layoutParams = (panel.layoutParams as FrameLayout.LayoutParams).apply {
                         this.width = minOf(available, dp(640))
+                        if (panel == settings || panel == notes) this.height = minOf(height - 2 * vertical, dp(600))
                     }
                 }
             }
@@ -143,8 +160,8 @@ class TvScreen(
             TvPlayer.Status.WAITING_NETWORK -> R.string.waiting_network
             else -> R.string.loading_channel
         })
-        if (newlyFailed && mode == Mode.SETTINGS) settingsReturn = Mode.PLAYBACK
-        if (newlyFailed && mode != Mode.SETTINGS && mode != Mode.EXIT) setMode(Mode.PLAYBACK)
+        if (newlyFailed && (mode == Mode.SETTINGS || mode == Mode.NOTES)) settingsReturn = Mode.PLAYBACK
+        if (newlyFailed && mode != Mode.SETTINGS && mode != Mode.NOTES && mode != Mode.EXIT) setMode(Mode.PLAYBACK)
         else render()
         if (newlyFailed && mode == Mode.PLAYBACK) accept.requestFocus()
     }
@@ -205,9 +222,43 @@ class TvScreen(
 
     private fun showSettings() {
         if (mode == Mode.SETTINGS) return
+        if (mode == Mode.NOTES) { closeNotes(); return }
         settingsReturn = mode
         handler.removeCallbacks(hideOverlay)
         setMode(Mode.SETTINGS)
+    }
+
+    private fun showNotes() {
+        view<TextView>(R.id.notes_title).text = activity.getString(R.string.patch_notes_title, version)
+        view<TextView>(R.id.notes_text).text = runCatching {
+            activity.assets.open("patch-notes.md").use { readBounded(it, 32 * 1024).toString(Charsets.UTF_8) }
+        }.getOrElse { activity.getString(R.string.notes_unavailable) }
+        notesScroll.scrollTo(0, 0)
+        setMode(Mode.NOTES)
+    }
+
+    private fun closeNotes() { setMode(Mode.SETTINGS); versionNotes.requestFocus() }
+    private fun moveSettings(delta: Int) {
+        val buttons = settingsButtons.filter { it.isEnabled }
+        val position = buttons.indexOfFirst { it.hasFocus() }.coerceAtLeast(0)
+        buttons.getOrNull((position + delta).coerceIn(0, buttons.lastIndex))?.requestFocus()
+    }
+
+    fun setUpdateStatus(status: UpdateStatus) {
+        view<TextView>(R.id.update_status).text = status.message.ifBlank { activity.getString(R.string.update_idle) }
+        val progress = view<ProgressBar>(R.id.update_progress)
+        val busy = status.phase in listOf(UpdatePhase.CHECKING, UpdatePhase.DOWNLOADING, UpdatePhase.PREPARING,
+            UpdatePhase.INSTALLING, UpdatePhase.CONFIRMATION)
+        progress.visibility = visible(busy)
+        progress.isIndeterminate = status.percent < 0
+        progress.progress = status.percent.coerceIn(0, 100)
+        val wasFocused = checkUpdates.hasFocus()
+        checkUpdates.isEnabled = !busy
+        if (busy && wasFocused) versionNotes.requestFocus()
+        if (mode == Mode.PLAYBACK && status.phase in listOf(UpdatePhase.PREPARING, UpdatePhase.INSTALLING, UpdatePhase.CONFIRMATION)) {
+            loading.text = status.message
+            loading.visibility = View.VISIBLE
+        }
     }
 
     private fun setMode(updated: Mode) {
@@ -218,6 +269,7 @@ class TvScreen(
             Mode.CHANNELS -> focusMenuCursor()
             Mode.EXIT -> view<Button>(R.id.keep_watching).requestFocus()
             Mode.SETTINGS -> saveLogs.requestFocus()
+            Mode.NOTES -> view<Button>(R.id.close_notes).requestFocus()
             Mode.PLAYBACK -> {
                 if (status == TvPlayer.Status.FAILED && current != null) accept.requestFocus() else root.requestFocus()
                 showOverlay()
@@ -255,6 +307,7 @@ class TvScreen(
                 else setMode(Mode.PLAYBACK)
             Mode.EXIT -> resumeView()
             Mode.SETTINGS -> setMode(settingsReturn)
+            Mode.NOTES -> closeNotes()
             Mode.PLAYBACK -> if (status == TvPlayer.Status.FAILED && current != null) showChannels()
                 else setMode(Mode.EXIT)
         }
@@ -286,7 +339,7 @@ class TvScreen(
         val consumed = when (key) {
             KeyEvent.KEYCODE_BACK -> { requestBack(); true }
             KeyEvent.KEYCODE_MENU -> {
-                if (mode == Mode.SETTINGS) requestBack() else showSettings()
+                if (mode == Mode.SETTINGS || mode == Mode.NOTES) requestBack() else showSettings()
                 true
             }
             KeyEvent.KEYCODE_DPAD_UP -> when (mode) {
@@ -297,7 +350,8 @@ class TvScreen(
                     true
                 }
                 Mode.EXIT -> { view<Button>(R.id.keep_watching).requestFocus(); true }
-                Mode.SETTINGS -> { saveLogs.requestFocus(); true }
+                Mode.SETTINGS -> { moveSettings(-1); true }
+                Mode.NOTES -> { notesScroll.scrollBy(0, -dp(80)); true }
             }
             KeyEvent.KEYCODE_DPAD_DOWN -> when (mode) {
                 Mode.CHANNELS -> { moveMenuCursor(1); true }
@@ -307,7 +361,8 @@ class TvScreen(
                     true
                 }
                 Mode.EXIT -> { view<Button>(R.id.exit_app).requestFocus(); true }
-                Mode.SETTINGS -> { exportLogs.requestFocus(); true }
+                Mode.SETTINGS -> { moveSettings(1); true }
+                Mode.NOTES -> { notesScroll.scrollBy(0, dp(80)); true }
             }
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_CHANNEL_DOWN -> {
                 if (mode == Mode.PLAYBACK) {
@@ -322,9 +377,10 @@ class TvScreen(
                         true
                     }
                     mode == Mode.SETTINGS -> {
-                        if (exportLogs.hasFocus()) exportLogs.performClick() else saveLogs.performClick()
+                        settingsButtons.firstOrNull { it.hasFocus() && it.isEnabled }?.performClick()
                         true
                     }
+                    mode == Mode.NOTES -> { closeNotes(); true }
                     canTune && tuning.isPending -> { tuning.confirm(); true }
                     mode == Mode.CHANNELS -> {
                         if (menuCursor == channels.size) onRefresh()
@@ -357,6 +413,7 @@ class TvScreen(
     private fun render() {
         menu.visibility = visible(mode == Mode.CHANNELS)
         settings.visibility = visible(mode == Mode.SETTINGS)
+        notes.visibility = visible(mode == Mode.NOTES)
         exit.visibility = visible(mode == Mode.EXIT)
         error.visibility = visible(mode == Mode.PLAYBACK && current != null && status == TvPlayer.Status.FAILED)
         loading.visibility = visible(mode == Mode.PLAYBACK &&

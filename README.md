@@ -1,10 +1,12 @@
 # BOBTV
 
-App IPTV nativa en Kotlin y XML para Android 10 o posterior, manejada con el mando del TV Box. BOBTV **2.3**, código **7**, conserva `com.bobtv.helloworld` y el certificado de las versiones anteriores.
+App IPTV nativa en Kotlin y XML para Android 10 o posterior, manejada con el mando del TV Box. BOBTV **2.4**, código **8**, conserva `com.bobtv.helloworld` y el certificado de las versiones anteriores.
 
 ## Instalar como actualización
 
-Entrega: **dist/BOBTV-2.3-Android10.apk**, con archivo SHA-256. Transfiérela por AnyDesk, ábrela en el gestor de archivos e instala como actualización. No hace falta ADB. Se conservan las entregas anteriores; Android normalmente impide instalar un código inferior sobre uno superior. Consulta [volumen y validación de 2.3](docs/VOLUMEN_2.3.md).
+Entrega: **[BOBTV 2.4 en GitHub Releases](https://github.com/TylorDev/BOBTV/releases/tag/v2.4)**, también en `dist/BOBTV-2.4-Android10.apk`, con archivo SHA-256. La primera instalación de 2.4 se hace por AnyDesk o desde el gestor de archivos, como actualización y sin desinstalar. No hace falta ADB. Se conservan las entregas anteriores; Android normalmente impide instalar un código inferior sobre uno superior.
+
+Desde 2.4, BOBTV busca parches cada seis horas cuando Android permite ejecutar el trabajo y hay conexión. Descarga y valida el APK en segundo plano y lo instala al próximo inicio, antes de reproducir. En Configuración, **Buscar actualizaciones** inicia la búsqueda y descarga inmediatamente e intenta instalar. **Versión actual · Notas del parche** muestra las notas incluidas en el APK, incluso sin red. Android puede pedir autorización de origen y confirmación del instalador. Los fallos o cancelaciones conservan la versión instalada, el canal y el volumen. [Funcionamiento, publicación y validación de 2.4](docs/ACTUALIZACIONES_2.4.md).
 
 ## Mando y configuración
 
@@ -71,6 +73,7 @@ Las [fuentes nuevas de octubre](docs/FUENTES_IPTV_2026-10-13.md) fueron examinad
 - AGP 9.0.1, Gradle 9.1.0, Java 17 y Kotlin integrado.
 - SDK de compilación 36, destino 33 y mínimo 29.
 - Media3 / ExoPlayer **1.11.1**, HLS y PlayerView.
+- WorkManager **2.12.0**, trabajos de actualización persistentes con red disponible.
 - Recursos XML y pruebas JVM, sin migración de stack.
 
 Desde PowerShell:
@@ -82,3 +85,12 @@ Desde PowerShell:
     .\gradlew.bat --no-daemon "-Pandroid.injected.signing.store.file=$signingStore" "-Pandroid.injected.signing.store.password=android" "-Pandroid.injected.signing.key.alias=androiddebugkey" "-Pandroid.injected.signing.key.password=android" :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 
 Los informes quedan en app/build/reports. Los resultados de 2.3 se documentan en [volumen y validación](docs/VOLUMEN_2.3.md). Las pruebas de foco, teclas y ciclo de vida se ejecutan con Robolectric en JVM y se comprueban mediante assertions/logs, sin capturas ni emulador. No se hacen verificaciones visuales automatizadas. Las metas de PSS, mando, frames, continuidad y volumen audible requieren las pruebas manuales en el TV Box.
+
+## Publicar un parche
+
+1. Incrementa `versionCode` y cambia `versionName` en `app/build.gradle.kts`.
+2. Escribe las notas en español en `releases/<versionName>.md`, empezando con `# BOBTV <versionName>`. Gradle incluye ese mismo archivo dentro del APK.
+3. Guarda un commit detallado y sube el código a `main`.
+4. Crea y sube la etiqueta `v<versionName>`. Actions prueba y analiza el código, genera un APK release firmado y prepara un borrador. Solo publica tras descargar y verificar los tres archivos subidos: APK, SHA-256 y `update.json`.
+
+Los secretos de firma son `BOBTV_KEYSTORE_BASE64`, `BOBTV_KEYSTORE_PASSWORD`, `BOBTV_KEY_ALIAS` y `BOBTV_KEY_PASSWORD`. La clave privada se conserva fuera del repositorio. Para generar una entrega local, define `BOBTV_KEYSTORE_PATH` y los otros tres valores en el entorno, ejecuta `:app:assembleRelease` y luego `python tools/release.py package --tag v2.4 --apk app/build/outputs/apk/release/app-release.apk`. No cambies el certificado, porque impediría actualizar las instalaciones actuales.

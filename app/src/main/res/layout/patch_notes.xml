@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/notes_panel"
+    android:layout_width="640dp" android:layout_height="match_parent" android:layout_gravity="center"
+    android:orientation="vertical" android:padding="@dimen/space_large"
+    android:background="@drawable/panel_background" android:visibility="gone">
+    <TextView android:id="@+id/notes_title" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textSize="@dimen/channel_text_size" android:textColor="@color/text_primary" android:fontFamily="sans-serif-medium" />
+    <ScrollView android:id="@+id/notes_scroll" android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:layout_marginTop="@dimen/space_medium" android:focusable="false"
+        android:descendantFocusability="blocksDescendants">
+        <TextView android:id="@+id/notes_text" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="@dimen/help_text_size" android:textColor="@color/text_primary" android:focusable="false" />
+    </ScrollView>
+    <Button android:id="@+id/close_notes" style="@style/TVButton" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_medium" android:text="@string/close_notes" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_small" android:text="@string/notes_help"
+        android:textSize="@dimen/help_text_size" android:textColor="@color/text_secondary" />
+</LinearLayout>

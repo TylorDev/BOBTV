@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/settings_panel"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/settings_panel"
     android:layout_width="640dp" android:layout_height="wrap_content" android:layout_gravity="center"
-    android:orientation="vertical" android:padding="@dimen/space_large"
+    android:fillViewport="false" android:padding="@dimen/space_large"
     android:background="@drawable/panel_background" android:visibility="gone">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="@string/settings_title" android:textSize="@dimen/channel_text_size"
         android:textColor="@color/text_primary" android:fontFamily="sans-serif-medium" />
@@ -14,8 +15,21 @@
         android:nextFocusDown="@id/export_logs" android:text="@string/save_logs" />
     <Button android:id="@+id/export_logs" style="@style/TVButton" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_medium"
-        android:nextFocusUp="@id/save_logs" android:text="@string/export_logs" />
+        android:nextFocusUp="@id/save_logs" android:nextFocusDown="@id/version_notes" android:text="@string/export_logs" />
+    <Button android:id="@+id/version_notes" style="@style/TVButton" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_medium"
+        android:nextFocusUp="@id/export_logs" android:nextFocusDown="@id/check_updates" android:text="@string/notes_unavailable" />
+    <Button android:id="@+id/check_updates" style="@style/TVButton" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_medium"
+        android:nextFocusUp="@id/version_notes" android:text="@string/check_updates" />
+    <TextView android:id="@+id/update_status" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_medium" android:text="@string/update_idle" android:accessibilityLiveRegion="polite"
+        android:textSize="@dimen/help_text_size" android:textColor="@color/text_secondary" />
+    <ProgressBar android:id="@+id/update_progress" style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent" android:layout_height="@dimen/volume_bar_height"
+        android:layout_marginTop="@dimen/space_small" android:visibility="gone" android:focusable="false" android:max="100" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_medium" android:text="@string/settings_help"
         android:textSize="@dimen/help_text_size" android:textColor="@color/text_secondary" />
-</LinearLayout>
+    </LinearLayout>
+</ScrollView>
