@@ -23,7 +23,10 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Install Android SDK components
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+        run: |
+          sdk_manager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -n "$sdk_manager"
+          "$sdk_manager" 'platforms;android-36' 'build-tools;36.0.0'
       - name: Test and lint
         run: |
           chmod +x gradlew
@@ -48,7 +51,10 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Install Android SDK components
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+        run: |
+          sdk_manager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -n "$sdk_manager"
+          "$sdk_manager" 'platforms;android-36' 'build-tools;36.0.0'
       - name: Validate version and patch notes
         run: python3 tools/release.py validate --tag "$GITHUB_REF_NAME" --check-published
       - name: Decode existing signing keystore
